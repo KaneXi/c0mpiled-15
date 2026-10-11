@@ -1,50 +1,56 @@
-# c0mpiled-15: Penn State
+# Relay — volunteer coordination
 
-Private team workspace for the c0mpiled-15 hackathon.
+**Complete product source:** `main` · **[Integration PR #6](https://github.com/KaneXi/c0mpiled-15/pull/6)**
 
-**Project: TBD. Track: TBD.** No project concept or technical stack has been selected.
+Original competition information is preserved in [EVENT.md](docs/EVENT.md).
 
-## Event
+Start with **[TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)** for setup, source ownership, deployment boundaries and the remaining official AWS payment integration. The owner authorized integrating the complete application into `main` through PR #6. Existing history and teammates' branches are preserved.
 
-- Date: October 11, 2026
-- Venue: Engineering Design & Innovation Building, Penn State
-- Official listing: https://luma.com/compiled-jjvw
-- Time zone: America/New_York
+## Public entry points
 
-## Schedule
+- [Guest workspace](https://rescue.kanexi.me/): fictional schedules, guided help, automatic simulated check-ins and manager-approved replacement plans.
+- [Real telephone demonstration](https://rescue.kanexi.me/?phone-test=1): presenter-controlled roster, exact shift times, a Call now button and scheduled outreach. AWS runs it independently of the browser. Only a configured consenting allowlist can receive calls.
+- [Subscription offer](https://rescue.kanexi.me/?plan=1): first month free, then $4.99 USD/month. **Checkout is not connected and no payment is collected.**
 
-As listed on the event page checked October 11, 2026:
+The previous real test verified an original volunteer's spoken refusal and an automatic replacement call. The replacement response was uncertain, so no replacement was assigned. The revised timed website workflow and successful telephone acceptance still need a presenter-run end-to-end test. Guest sessions are not production customer accounts.
 
-| Time | Activity |
-|---|---|
-| 11:00 a.m. | Doors open, registration and team formation |
-| 11:30 a.m. | Introductions and challenge overview |
-| Noon–8:00 p.m. | Building |
-| 8:00 p.m. | Judging begins; optional demos |
-| 8:45 p.m. | Awards and closing |
+## Readable source and packaged copies
 
-Confirm submission format, deadlines, and presentation arrangements with the organizers.
+| Location | Contents |
+| --- | --- |
+| `apps/revenuerescue/` | Complete readable Next.js/TypeScript source, lockfile, fonts, tests and build scripts. The directory name is historical. |
+| `apps/revenuerescue/src/relay/` | Scheduling engine, shared contracts, Bedrock interpretation, persistence, API and real outbound voice handler. |
+| `infra/` | Core CloudFormation template and generator. Connect/Lex resources require separate configuration; see the handoff. |
+| `integrated/relay-source.zip` | Downloadable source snapshot, excluding other generated archives and all local secrets. Check its source manifest. |
+| `integrated/relay-sample-voice-aws.zip` | Current static website plus API/voice Lambda bundles and documentation. Requires existing infrastructure/configuration. |
+| `integrated/relay-release.zip` | Older standalone Next.js baseline. It is retained for reference, not the latest website/voice release. |
+| `docs/` | API, sample schedules, phone controls, pricing and handoff instructions. Earlier dated status notes are historical. |
 
-## Tracks
+## Run locally
 
-- **Track 1A — Build a Self-Improving Agent Team:** Parallel agents repeatedly propose, test, and learn using DeepSeek or GLM Flash hosted on Luminal Cloud. Show a working demo, baseline, iteration results, and fresh final tests.
-- **Track 1B — YC Requests for Startups:** Select a topic from YC's Fall 2026 Requests for Startups.
-- **Track 2 — Build AND Sell:** Build and validate a product through sales or progress toward sales during the event.
+Use Node.js 22.13 or later in the 22.x series.
 
-Refer to the official listing and organizer announcements for current rules.
+```sh
+git clone --branch main https://github.com/KaneXi/c0mpiled-15.git
+cd c0mpiled-15/apps/revenuerescue
+npm ci
+cp .env.example .env.local
+npm run dev
+```
 
-## Collaboration workflow
+Open http://localhost:3008/. Without `RELAY_AI_ENABLED=true` and an authenticated AWS profile, AI is explicitly unavailable and the simulator accepts manually selected outcomes. Real telephone infrastructure and billing are not enabled by installing the source. SQLite persists fictional local data under ignored `.data/`.
 
-1. Discuss ideas and select a project and track.
-2. Create Issues with an objective, owner, and acceptance criteria.
-3. Make changes on descriptive branches such as `feat/12-task-name`.
-4. Open pull requests referencing the relevant Issues and include validation evidence.
-5. Review and merge completed changes into `main`.
+## Verify and build
 
-Use Issues to track tasks, decisions, and blockers. Branch protection is not configured; review is a team convention.
+```sh
+npm run typecheck
+npm run lint
+npm test
+npx tsx --test src/components/relay/*.test.ts
+npm run build
+npm run build:web
+npm run build:lambda
+node scripts/build-voice.mjs
+```
 
-## Access
-
-This repository is private. The owner manages individual invitations in Settings > Collaborators. Access is granted to invited GitHub accounts, not through an email-domain allowlist.
-
-Do not commit credentials or `.env` files.
+Never commit the registry token, private `.npmrc`, `.env.local`, presenter code, real test roster, AWS login cache or customer conversation data. The teammate should install the official monetization tooling privately and open their own feature branch from updated `main`.

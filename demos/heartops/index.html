@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ed">
+  <meta name="description" content="Meet HeartOps, a volunteer coordination concept that helps community teams respond to change. Try an interactive shift recovery demo.">
+  <title>HeartOps — Keep good work going.</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23ed7d57'/%3E%3Cpath d='M20 29 9 18C2 8 17 5 20 13 23 5 38 8 31 18Z' fill='%23282d27'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/anton-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#product-demo">Skip to interactive demo</a>
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+    <symbol id="arrow-up" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="heart" viewBox="0 0 40 40"><path d="M20 32 6.8 19C-1 8.8 13.7 1 20 11.7 26.3 1 41 8.8 33.2 19Z" fill="currentColor" stroke="none"/><path d="M8 20h7l3-6 4 12 3-6h7" stroke="#f5f4ed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+  </defs></svg>
+  <header class="site-header wrap">
+    <a class="brand" href="#home" aria-label="HeartOps home"><svg class="brand-symbol" aria-hidden="true"><use href="#heart"/></svg><span>heartops<span class="brand-dot">.</span></span></a>
+    <nav class="desktop-nav" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#community">Our mission</a><a href="#platform">The platform</a></nav>
+    <div class="header-actions"><a class="button button-small button-outline" href="#product-demo" data-start-demo>Try the demo<svg aria-hidden="true"><use href="#arrow-up"/></svg></a><button id="menu-toggle" class="icon-button menu-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg></button></div>
+  </header>
+  <nav id="mobile-nav" class="mobile-nav wrap" aria-label="Mobile navigation" hidden><a href="#how-it-works">How it works</a><a href="#community">Our mission</a><a href="#platform">The platform</a></nav>
+
+  <main id="home">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">KEEP GOOD<br>WORK <span>GOING.</span></h1>
+        <p class="hero-description">Big-hearted teams deserve a little backup. Turn last-minute volunteer changes into a clear plan, with your people in control.</p>
+        <div class="hero-actions"><a href="#product-demo" class="button button-orange" data-start-demo>Try a shift rescue<svg aria-hidden="true"><use href="#arrow-up"/></svg></a><a href="#how-it-works" class="text-link">See how it works<svg aria-hidden="true"><use href="#arrow"/></svg></a></div>
+        <div class="people-note"><div class="tiny-portraits" aria-hidden="true"><img src="assets/story-4.jpg" alt="" width="40" height="40"><img src="assets/story-7.jpg" alt="" width="40" height="40"><img src="assets/story-3.jpg" alt="" width="40" height="40"></div><p>For the people<br><strong>who show up for others.</strong></p></div>
+        <p class="hero-footnote">A HeartOps concept by RevenueRescue AI</p>
+      </div>
+
+      <div class="demo-frame" id="product-demo" aria-label="Interactive shift recovery demonstration">
+        <div class="demo-chrome"><span class="demo-app-name"><svg aria-hidden="true"><use href="#heart"/></svg>HeartOps workspace</span><span class="demo-label"><span></span>Interactive demo</span></div>
+        <div class="demo-heading"><div><h2>Community Day</h2><p>Saturday, October 17 · Volunteer operations</p></div><button class="icon-button" id="reset-demo" type="button" aria-label="Reset demo" title="Reset demo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9a8 8 0 1 1 0 6M4 4v5h5"/></svg></button></div>
+        <div id="rescue-ui"></div>
+        <p id="demo-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="demo-disclaimer"><span>Sample data</span><span>No real messages or calls</span></div>
+      </div>
+    </section>
+
+    <div class="promise-strip wrap" aria-label="Product principles"><span>Built around your people</span><span><svg aria-hidden="true"><use href="#check"/></svg>Availability comes first</span><span><svg aria-hidden="true"><use href="#check"/></svg>You approve the next step</span><span><svg aria-hidden="true"><use href="#check"/></svg>Every action stays visible</span></div>
+
+    <section id="how-it-works" class="how-section wrap" aria-labelledby="how-title">
+      <div class="section-intro"><h2 id="how-title">A CHANGE OF PLAN.<br><span>A CLEAR WAY<br>FORWARD.</span></h2><p>A canceled shift shouldn’t take over your day. Keep the opening, the conversation, and the next decision in one place.</p><a class="text-link" href="#product-demo" data-start-demo>Walk through a rescue<svg aria-hidden="true"><use href="#arrow"/></svg></a></div>
+      <div class="process-list">
+        <details class="process-item" open><summary><span class="process-number">01</span><span>Spot the opening.</span><svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></summary><div class="process-copy"><p>See which shift needs help, when it starts, and who is already on the team. A useful alert starts with a clear picture.</p><span class="process-detail"><span class="small-dot orange"></span>One open role. One clear next step.</span></div></details>
+        <details class="process-item"><summary><span class="process-number">02</span><span>Find the right fit.</span><svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></summary><div class="process-copy"><p>Review volunteers whose availability and skills match the shift. See why they fit, and check the message before you approve contact.</p><span class="process-detail"><span class="small-dot sage"></span>A suggestion you can understand.</span></div></details>
+        <details class="process-item"><summary><span class="process-number">03</span><span>Make the call. Together.</span><svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></summary><div class="process-copy"><p>The volunteer accepts. You confirm the replacement. The shift is covered, and everyone knows what happens next.</p><span class="process-detail"><span class="small-dot sage"></span>Two approvals. People stay in control.</span></div></details>
+      </div>
+    </section>
+
+    <section class="community-section" id="community" aria-labelledby="community-title"><div class="wrap">
+      <div class="community-heading"><h2 id="community-title">BEHIND EVERY CAUSE,<br>THERE’S <span>A PERSON.</span></h2><p>The early arrivals. The extra pair of hands. The ones who stay a little longer. Good coordination makes room for their good work.</p></div>
+      <div class="people-strip" aria-label="Illustrative community portraits">
+        <button class="people-card active" data-photo="0" aria-pressed="true" aria-label="The people who lend a hand"><img src="assets/story-1.jpg" alt="Volunteer in a coral shirt at an event" loading="lazy" width="700" height="1000"><span class="photo-caption"><strong>The helping hands.</strong><span>A little support behind every act of care.</span></span></button>
+        <button class="people-card" data-photo="1" aria-pressed="false" aria-label="The people who welcome others"><img src="assets/story-4.jpg" alt="Illustrative community portrait" loading="lazy" width="700" height="1000"><span class="photo-caption"><strong>The warm welcomes.</strong><span>Making a new face feel at home.</span></span></button>
+        <button class="people-card" data-photo="2" aria-pressed="false" aria-label="The people who bring a community together"><img src="assets/story-7.jpg" alt="Illustrative community portrait" loading="lazy" width="700" height="1000"><span class="photo-caption"><strong>The connectors.</strong><span>Bringing people and purpose together.</span></span></button>
+        <button class="people-card" data-photo="3" aria-pressed="false" aria-label="The people who make a plan happen"><img src="assets/story-3.jpg" alt="Illustrative community portrait" loading="lazy" width="700" height="1000"><span class="photo-caption"><strong>The quiet organizers.</strong><span>Keeping the good work moving.</span></span></button>
+        <button class="people-card" data-photo="4" aria-pressed="false" aria-label="The people who stay to help"><img src="assets/story-9.jpg" alt="Illustrative community portrait" loading="lazy" width="700" height="1000"><span class="photo-caption"><strong>The last to leave.</strong><span>Always finding one more way to help.</span></span></button>
+      </div>
+      <div class="community-bottom"><span>Different people. A shared purpose.</span><span>Illustrative photography · No implied endorsement</span></div>
+    </div></section>
+
+    <section class="platform-section wrap" id="platform" aria-labelledby="platform-title"><div><h2 id="platform-title">A LITTLE LESS ADMIN.<br><span>A LOT MORE HEART.</span></h2><p>Start with one shift. Build toward a calmer way to run your organization.</p><a class="button button-orange" href="#product-demo" data-start-demo>Explore the demo<svg aria-hidden="true"><use href="#arrow-up"/></svg></a></div><div class="platform-faq">
+      <details open><summary>What can I try today?<svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></summary><p>A complete local interaction: review a canceled shift, approve outreach, simulate a volunteer’s reply, and confirm the replacement. Reset it any time.</p></details>
+      <details><summary>Does this contact real volunteers?<svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></summary><p>No. All people and shift records in the demo are fictional. No email, SMS, phone call, or real assignment is created.</p></details>
+      <details><summary>What’s coming next?<svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></summary><p>Volunteer management, connected AI assistance, and organization plans are planned. AWS and billing integrations are not connected in this homepage prototype.</p></details>
+    </div></section>
+  </main>
+
+  <footer class="site-footer wrap"><a class="brand" href="#home" aria-label="HeartOps home"><svg class="brand-symbol" aria-hidden="true"><use href="#heart"/></svg><span>heartops<span class="brand-dot">.</span></span></a><p>Good work deserves good support.</p><div><span>by RevenueRescue AI</span><span>Independent hackathon prototype · 2026</span></div></footer>
+  <script src="app.js"></script>
+</body>
+</html>

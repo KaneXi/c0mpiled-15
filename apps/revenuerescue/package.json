@@ -1,0 +1,53 @@
+{
+  "name": "revenuerescue",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13 <23"
+  },
+  "scripts": {
+    "dev": "RELAY_WORKER_ENABLED=true next dev -p 3008",
+    "build": "next build",
+    "start": "RELAY_WORKER_ENABLED=true next start -p 3008",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "bundle:demo": "node scripts/bundle-demo.mjs",
+    "format": "prettier --write src tests scripts *.ts *.mjs *.json *.md",
+    "build:lambda": "node scripts/build-lambda.mjs",
+    "package:release": "node scripts/package-relay.mjs",
+    "build:web": "node scripts/build-relay-web.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "3.1149.0",
+    "@aws-sdk/client-connect": "3.1149.0",
+    "@aws-sdk/client-dynamodb": "3.1149.0",
+    "@aws-sdk/client-lambda": "3.1149.0",
+    "@aws-sdk/lib-dynamodb": "3.1149.0",
+    "lucide-react": "1.55.0",
+    "luxon": "3.7.2",
+    "next": "15.5.27",
+    "react": "19.1.9",
+    "react-dom": "19.1.9",
+    "zod": "4.6.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/luxon": "^3.7",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "tsx": "^4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
+  },
+  "overrides": {
+    "postcss": "8.5.29"
+  }
+}
