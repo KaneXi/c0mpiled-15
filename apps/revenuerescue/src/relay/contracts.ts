@@ -243,7 +243,12 @@ export const commandSchema = z.discriminatedUnion("type", [
         .optional(),
     })
     .strict(),
-  z.object({ type: z.literal("RESET_DEMO") }).strict(),
+  z
+    .object({
+      type: z.literal("RESET_DEMO"),
+      sample: z.enum(["starter", "four-person"]).optional(),
+    })
+    .strict(),
 ]);
 export type RelayCommand = z.infer<typeof commandSchema>;
 export type DomainCommand = Exclude<

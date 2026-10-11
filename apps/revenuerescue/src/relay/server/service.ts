@@ -6,7 +6,7 @@ import type {
   RelayView,
 } from "../contracts";
 import { applyCommand, completeCall, monitor, startNextCall } from "../engine";
-import { createRelayState } from "../seed";
+import { createRelayState, createSampleSchedule } from "../seed";
 import {
   createAgentProvider,
   AgentProviderUnavailable,
@@ -69,7 +69,9 @@ export class RelayService {
       await this.store.mutate(tenantId, expectedRevision, receipt, (state) =>
         command.type === "RESET_DEMO"
           ? {
-              ...createRelayState(tenantId, new Date().toISOString()),
+              ...(command.sample === "four-person"
+                ? createSampleSchedule
+                : createRelayState)(tenantId, new Date().toISOString()),
               revision: state.revision,
             }
           : applyCommand(state, command, new Date().toISOString()),

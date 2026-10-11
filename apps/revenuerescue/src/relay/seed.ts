@@ -92,3 +92,93 @@ export function createRelayState(tenantId: string, nowISO: string): RelayState {
     ],
   };
 }
+
+/** Four fictional test participants plus a manager; explicit reset only. */
+export function createSampleSchedule(
+  tenantId: string,
+  nowISO: string,
+): RelayState {
+  const state = createRelayState(tenantId, nowISO);
+  const quarter = 15 * 60_000;
+  const start =
+    Math.ceil((Date.parse(nowISO) + 45 * 60_000) / quarter) * quarter;
+  const at = (minutes: number) =>
+    new Date(start + minutes * 60_000).toISOString();
+  state.organization = "Community Table · Four-person sample";
+  state.paused = true;
+  state.volunteers = state.volunteers.map((person) => ({
+    ...person,
+    name: person.id === "vol-taylor" ? "Kane (sample)" : person.name,
+    roles:
+      person.id === "vol-taylor"
+        ? ["meal-packing", "welcome", "supply-lead"]
+        : person.roles,
+    availability: [{ start: at(-30), end: at(180) }],
+  }));
+  state.shifts = [
+    {
+      id: "shift-sample-meals",
+      title: "Sample · Meal packing",
+      role: "meal-packing",
+      start: at(0),
+      end: at(60),
+      required: 1,
+      status: "draft",
+      version: 1,
+    },
+    {
+      id: "shift-sample-welcome",
+      title: "Sample · Welcome desk (conflict)",
+      role: "welcome",
+      start: at(-15),
+      end: at(75),
+      required: 1,
+      status: "draft",
+      version: 1,
+    },
+    {
+      id: "shift-sample-supplies",
+      title: "Sample · Supply lead (no replacement)",
+      role: "supply-lead",
+      start: at(60),
+      end: at(90),
+      required: 1,
+      status: "draft",
+      version: 1,
+    },
+  ];
+  state.assignments = [
+    {
+      id: "sample-original",
+      shiftId: "shift-sample-meals",
+      volunteerId: "vol-taylor",
+      status: "assigned",
+      note: "Fictional sample: original assignee. Publish this shift first.",
+    },
+    {
+      id: "sample-conflict",
+      shiftId: "shift-sample-welcome",
+      volunteerId: "vol-riley",
+      status: "assigned",
+      note: "Keep this draft assignment to test overlap exclusion. Do not publish it during the main demonstration.",
+    },
+    {
+      id: "sample-no-replacement",
+      shiftId: "shift-sample-supplies",
+      volunteerId: "vol-taylor",
+      status: "assigned",
+      note: "Only this volunteer has the supply-lead role. Publish separately to test an uncovered shift.",
+    },
+  ];
+  state.activity = [
+    {
+      id: "sample-ready",
+      at: nowISO,
+      kind: "system",
+      text: "Four-person fictional sample loaded with future draft shifts and calls paused. All numbers and permissions are test fixtures, not real contact authorization.",
+      nextAction:
+        "Publish Sample · Meal packing, then Resume AI Calls. Leave the other shifts as drafts.",
+    },
+  ];
+  return state;
+}

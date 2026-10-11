@@ -31,6 +31,28 @@ function request(
   });
 }
 describe("Relay API authorization boundary", () => {
+  it("loads a paused four-person sample through the existing reset command", async () => {
+    const session = await handleRelayRequest(request("session", "POST", {}));
+    const cookie = session.headers.get("set-cookie")!;
+    const input = {
+      requestId: crypto.randomUUID(),
+      expectedRevision: 0,
+      command: { type: "RESET_DEMO", sample: "four-person" },
+    };
+    const response = await handleRelayRequest(
+      request("command", "POST", input, cookie),
+    );
+    expect(response.status).toBe(200);
+    const first = await response.json();
+    expect(first.state.paused).toBe(true);
+    expect(first.state.shifts[0].id).toBe("shift-sample-meals");
+    expect(first.state.calls).toEqual([]);
+    const replay = await (
+      await handleRelayRequest(request("command", "POST", input, cookie))
+    ).json();
+    expect(replay.state).toEqual(first.state);
+  });
+
   it("requires an actual guest session and denies a cross-origin write", async () => {
     expect((await handleRelayRequest(request("state"))).status).toBe(401);
     expect(

@@ -632,6 +632,9 @@ export default function RelayDashboard() {
   };
   const [myself, setMyself] = useState<Incident | null>(null);
   const [reset, setReset] = useState(false);
+  const [sample, setSample] = useState<"starter" | "four-person">(
+    "four-person",
+  );
   const [reload, setReload] = useState(0);
   const update = useCallback((next: RelayView) => {
     if (!next?.state) return;
@@ -843,7 +846,7 @@ export default function RelayDashboard() {
             disabled={busy}
             onClick={() => setReset(true)}
           >
-            <RefreshCw size={16} /> Reset sample workspace
+            <RefreshCw size={16} /> Sample schedules
           </button>
           <p>Calls are simulated. No volunteers are phoned.</p>
         </div>
@@ -956,6 +959,63 @@ export default function RelayDashboard() {
         )}
         {tab === "schedule" && (
           <>
+            {state.shifts.some(
+              (shift) => shift.id === "shift-sample-meals",
+            ) && (
+              <section
+                className={s.section}
+                aria-labelledby="sample-guide-title"
+              >
+                <div className={s.sectionHeading}>
+                  <h2 id="sample-guide-title">Four-person test schedule</h2>
+                  <span className={s.badge}>Fictional · simulated calls</span>
+                </div>
+                <p>
+                  Publish <strong>Sample · Meal packing</strong>, then select{" "}
+                  <strong>Resume AI Calls</strong>. Leave the other two shifts
+                  as drafts.
+                </p>
+                <p>
+                  Kane is the original assignee. Avery and Samira are eligible
+                  replacements, in that order. Riley is busy at the overlapping
+                  welcome desk. Casey is the manager and is excluded from
+                  automatic outreach.
+                </p>
+                <details>
+                  <summary>Test steps and expected results</summary>
+                  <ol>
+                    <li>
+                      Open Calls and submit Kane’s refusal in your own words. A
+                      replacement plan should appear in Schedule.
+                    </li>
+                    <li>
+                      Select Yes on that plan. In Calls, let Avery decline, then
+                      let Samira clearly accept the full shift. Exactly one
+                      replacement should be assigned; Riley should not be
+                      contacted for this shift.
+                    </li>
+                    <li>
+                      Reload this sample for another run. Try a clear
+                      confirmation (no replacement), an uncertain or partial
+                      answer (no confirmed coverage), or have both replacements
+                      refuse (shift remains uncovered).
+                    </li>
+                    <li>
+                      For the qualification test, reload the sample and publish
+                      only Sample · Supply lead. Resume calls and let Kane
+                      decline. Nobody else has that role, so the shift must
+                      remain uncovered.
+                    </li>
+                  </ol>
+                  <p className={s.hint}>
+                    Calling hours remain 8 AM–10 PM America/New_York. Use Sample
+                    schedules to refresh expired dates. Demo permission flags do
+                    not authorize real calls; all displayed phone numbers are
+                    fictional.
+                  </p>
+                </details>
+              </section>
+            )}
             {(openIncidents.length > 0 || help) && (
               <section className={s.attention} data-relay-tour="attention">
                 <div className={s.sectionHeading}>
@@ -1264,13 +1324,30 @@ export default function RelayDashboard() {
         </Dialog>
       )}
       {reset && (
-        <Dialog
-          title="Reset this sample workspace?"
-          onClose={() => setReset(false)}
-        >
+        <Dialog title="Load a sample schedule?" onClose={() => setReset(false)}>
           <p>
             This replaces your sample volunteers, schedule and call history with
-            the starting examples. Other workspaces are unaffected.
+            the selected fictional examples. Other workspaces are unaffected.
+          </p>
+          <label>
+            Choose a sample
+            <select
+              value={sample}
+              disabled={busy}
+              onChange={(event) =>
+                setSample(event.target.value as "starter" | "four-person")
+              }
+            >
+              <option value="four-person">
+                Four-person test · replacement and conflicts
+              </option>
+              <option value="starter">Original starter workspace</option>
+            </select>
+          </label>
+          <p className={s.hint}>
+            The four-person sample uses future draft shifts, fictional numbers
+            and paused calls. Loading it does not publish shifts or place phone
+            calls.
           </p>
           <div className={s.dialogActions}>
             <button className={s.secondary} onClick={() => setReset(false)}>
@@ -1281,7 +1358,10 @@ export default function RelayDashboard() {
               disabled={busy}
               onClick={async () => {
                 if (
-                  await send({ type: "RESET_DEMO" }, "Sample workspace reset.")
+                  await send(
+                    { type: "RESET_DEMO", sample },
+                    "Sample schedule loaded. Review the drafts before publishing.",
+                  )
                 ) {
                   setReset(false);
                   setEditor(null);
@@ -1289,7 +1369,7 @@ export default function RelayDashboard() {
                 }
               }}
             >
-              Reset sample workspace
+              Replace with sample
             </button>
           </div>
           {error && (

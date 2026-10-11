@@ -19,3 +19,7 @@ The owner authorized one call to their own US number with a $1 incremental budge
 `RELAY_PUBLIC_TEST_TENANT` selects exactly one existing tenant. The public GET does not create a session or grant write access. The test workspace is read-only even with its existing session; the automatic simulator worker also skips it. Only trusted AWS/operator updates may advance the test record, based on actual evidence. The original proposal for a private magic link was removed before final delivery. Personal test configuration, session credentials and deployment secrets remain ignored and are excluded from release archives.
 
 The test remains paused after the user's interruption. Completing or ending a phone call must not mark attendance confirmed. Any eventual dialing must honor the previously authorized single destination, consent, duration and budget, and release the temporary caller number afterward.
+
+## 2026-10-11 — Explicit four-person sample reset
+
+The owner requested a testable sample schedule. The existing RESET_DEMO command now accepts an optional sample selector; old clients keep the original seed. The four-person sample is loaded only after the existing destructive-reset confirmation, affects only the current guest tenant, starts paused with drafts and fictional contacts, and uses the unchanged scheduling and simulation services. It does not modify the public real-phone tenant or enable Connect. Dates are regenerated relative to load time. The original seed and independent voice work are preserved.
