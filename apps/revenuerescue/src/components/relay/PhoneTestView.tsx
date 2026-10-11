@@ -158,8 +158,6 @@ export function PhoneTestView({
               ? "Inquiry scheduled. AWS starts at or shortly after that time, even if you close this page."
               : "Sequence paused. No further calls will start.",
       );
-      if (action === "prepare")
-        setInquiryTime(localValue(DateTime.now().plus({ minutes: 2 })));
       if (action !== "prepare") {
         setAuthorizeCalls(false);
       }
@@ -385,20 +383,25 @@ export function PhoneTestView({
             <input
               type="datetime-local"
               value={inquiryTime}
-              disabled={busy || !!test.armedAt || !!test.startedAt}
+              disabled={busy}
               onChange={(event) => setInquiryTime(event.target.value)}
             />
           </label>
           <button
             className={s.textButton}
-            disabled={busy || !!test.armedAt || !!test.startedAt}
+            disabled={busy}
             onClick={() =>
               setInquiryTime(localValue(DateTime.now().plus({ minutes: 2 })))
             }
           >
             Use two minutes from now
           </button>
-          {test.scheduledFor && (
+          <p className={s.hint}>
+            Choose the date and time for your next inquiry. Editing this field
+            does not start or reschedule calls; save the task, then select
+            Schedule automatic inquiry.
+          </p>
+          {test.scheduledFor && !state.paused && (
             <p role="status">
               Inquiry scheduled for <strong>{format(test.scheduledFor)}</strong>
               . The server checks once per minute; it may start up to a minute
