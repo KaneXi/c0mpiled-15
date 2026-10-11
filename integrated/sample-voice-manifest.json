@@ -1,5 +1,5 @@
 {
-  "sourceCommit": "8ca092aac3da3e48337ea30ccd7f86441c601785",
+  "sourceCommit": "729b79cf07de22b9e0b7acd33f0d942bc3f2691f",
   "scope": "Current static website, API and voice Lambda artifacts; requires existing AWS infrastructure and private configuration. Subscription offer is visible; checkout is not connected. No standalone Next.js server in this archive.",
-  "archiveSha256": "9facb6e65661f0c15bab769e9e557a4fb6ed9ed9991f162450e8c36fdf9d338a"
+  "archiveSha256": "38f48e1dd7981dbbf07e15d47f82b32d8822cf330fe9c7cfa45e1e1df29ac48c"
 }
