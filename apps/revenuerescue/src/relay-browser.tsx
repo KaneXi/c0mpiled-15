@@ -1,4 +1,4 @@
 import { createRoot } from "react-dom/client";
-import RelayDashboard from "./components/relay/RelayDashboard";
+import RelayEntry from "./components/relay/RelayEntry";
 import "./app/globals.css";
-createRoot(document.getElementById("root")!).render(<RelayDashboard />);
+createRoot(document.getElementById("root")!).render(<RelayEntry />);

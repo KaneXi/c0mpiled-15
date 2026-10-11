@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DateTime } from "luxon";
 import type { RelayState } from "@/relay/contracts";
 import s from "./Relay.module.css";
+import { SubscriptionLink } from "./SubscriptionPlan";
 import { availabilityQuestion } from "@/relay/voice/prompts";
 const stages = {
   waiting: "Waiting for inquiry time",
@@ -176,6 +177,9 @@ export function PhoneTestView({
         </div>
         <span className={`${s.badge} ${s.warning}`}>{stages[test.stage]}</span>
       </header>
+      <p>
+        <SubscriptionLink />
+      </p>
       {connection && <p role="alert">{connection}</p>}
       {outbound && (
         <section

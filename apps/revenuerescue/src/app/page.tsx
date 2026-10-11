@@ -1,5 +1,5 @@
-import RelayDashboard from "@/components/relay/RelayDashboard";
+import RelayEntry from "@/components/relay/RelayEntry";
 
 export default function HomePage() {
-  return <RelayDashboard />;
+  return <RelayEntry />;
 }

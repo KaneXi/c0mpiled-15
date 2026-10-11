@@ -32,6 +32,7 @@ import type {
 import { RelayApiError, relayApi } from "./api";
 import { ShiftEditor, VolunteerEditor, type SendCommand } from "./Editors";
 import { browserZone, dateTime, label } from "./format";
+import { SubscriptionLink } from "./SubscriptionPlan";
 import { PhoneTestView } from "./PhoneTestView";
 import { RelayTour } from "./RelayTour";
 import { RELAY_TOUR_KEY, type RelayTourTab } from "./tour-flow";
@@ -828,6 +829,7 @@ export default function RelayDashboard() {
           ))}
         </nav>
         <div className={s.sidebarBottom}>
+          <SubscriptionLink />
           <button
             className={s.textButton}
             data-relay-help

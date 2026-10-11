@@ -1058,3 +1058,98 @@
 .phoneTestSection > .formGrid {
   margin: 20px 0;
 }
+
+.subscriptionPage {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  color: #292b24;
+}
+.subscriptionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.subscriptionOffer {
+  padding: 64px 0 36px;
+  max-width: 620px;
+}
+.subscriptionOffer h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.subscriptionIntro {
+  margin: 24px 0 36px;
+  font-size: 18px;
+  line-height: 1.6;
+}
+.subscriptionPrice {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.subscriptionPrice strong {
+  font-size: 72px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.subscriptionPrice span {
+  font-size: 20px;
+}
+.subscriptionRenewal {
+  margin: 14px 0 28px;
+  font-size: 22px;
+}
+.subscriptionTerms {
+  border-top: 1px solid #d8d9cf;
+  margin: 28px 0;
+}
+.subscriptionTerms > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid #d8d9cf;
+}
+.subscriptionTerms dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+}
+.subscriptionOffer > .primary {
+  margin-top: 24px;
+  min-height: 48px;
+}
+.subscriptionNotice {
+  color: #595c51;
+  font-size: 14px;
+  margin-top: 12px;
+}
+.subscriptionSponsor {
+  border-top: 1px solid #d8d9cf;
+  padding-top: 28px;
+  max-width: 620px;
+}
+.subscriptionSponsor h2 {
+  font-size: 24px;
+}
+.subscriptionSponsor p {
+  margin: 16px 0;
+}
+@media (max-width: 560px) {
+  .subscriptionPage {
+    padding: 24px 20px 48px;
+  }
+  .subscriptionOffer {
+    padding-top: 44px;
+  }
+  .subscriptionOffer > .primary {
+    width: 100%;
+  }
+}
