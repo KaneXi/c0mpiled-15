@@ -1,36 +1,50 @@
 # c0mpiled-15: Penn State
 
-Private collaboration workspace for CrowdPilot at c0mpiled-15, October 11, 2026.
+Private team workspace for the c0mpiled-15 hackathon.
 
-Event: https://luma.com/compiled-jjvw
+**Project: TBD. Track: TBD.** No project concept or technical stack has been selected.
 
-## CrowdPilot
+## Event
 
-An interactive HTML demonstration of simulated stadium departure guidance. Two AI agents propose routing policies in parallel; a shared simulator evaluates their proposals and returns feedback. Compare the final policy against baselines on previously unseen scenarios. Stadium geometry and crowd data that have not been verified must be labeled as simulated.
+- Date: October 11, 2026
+- Venue: Engineering Design & Innovation Building, Penn State
+- Official listing: https://luma.com/compiled-jjvw
+- Time zone: America/New_York
 
-## Team workflow
+## Schedule
 
-1. Create an Issue with an objective, owner, and acceptance criteria.
-2. Create a branch such as `feat/12-route-demo` or `fix/18-queue-count`.
-3. Open a pull request referencing the Issue and describe validation.
-4. Review the change, merge into `main`, and close the Issue.
+As listed on the event page checked October 11, 2026:
 
-Use Issues for tasks and blockers, and pull requests for changes. Keep `main` ready for the demo. This is a team convention; branch protection is not configured.
+| Time | Activity |
+|---|---|
+| 11:00 a.m. | Doors open, registration and team formation |
+| 11:30 a.m. | Introductions and challenge overview |
+| Noon–8:00 p.m. | Building |
+| 8:00 p.m. | Judging begins; optional demos |
+| 8:45 p.m. | Awards and closing |
 
-## Initial workstreams
+Confirm submission format, deadlines, and presentation arrangements with the organizers.
 
-- Simulator and baseline metrics.
-- Parallel agents using the event-approved Luminal models.
-- Interactive HTML map and route animation.
-- Fresh-test evaluation and results.
-- Demo and submission preparation.
+## Tracks
+
+- **Track 1A — Build a Self-Improving Agent Team:** Parallel agents repeatedly propose, test, and learn using DeepSeek or GLM Flash hosted on Luminal Cloud. Show a working demo, baseline, iteration results, and fresh final tests.
+- **Track 1B — YC Requests for Startups:** Select a topic from YC's Fall 2026 Requests for Startups.
+- **Track 2 — Build AND Sell:** Build and validate a product through sales or progress toward sales during the event.
+
+Refer to the official listing and organizer announcements for current rules.
+
+## Collaboration workflow
+
+1. Discuss ideas and select a project and track.
+2. Create Issues with an objective, owner, and acceptance criteria.
+3. Make changes on descriptive branches such as `feat/12-task-name`.
+4. Open pull requests referencing the relevant Issues and include validation evidence.
+5. Review and merge completed changes into `main`.
+
+Use Issues to track tasks, decisions, and blockers. Branch protection is not configured; review is a team convention.
 
 ## Access
 
-This repository is private. The owner manages individual collaborator invitations in Settings > Collaborators. Invitations grant access to GitHub accounts; this is not an email-domain allowlist. No collaborators have been invited at initialization.
+This repository is private. The owner manages individual invitations in Settings > Collaborators. Access is granted to invited GitHub accounts, not through an email-domain allowlist.
 
-Never commit API keys, `.env` files, or private camera footage. Keep model credentials on the backend.
-
-## Event details
-
-The event page checked on October 11 lists building from noon to 8 p.m. and judging with optional demos at 8 p.m., America/New_York. Confirm final submission requirements with organizers. A 90-second recording is a useful fallback, not a verified mandatory requirement on the current listing.
+Do not commit credentials or `.env` files.
