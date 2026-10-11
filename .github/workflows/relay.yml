@@ -20,5 +20,5 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
-      - run: npx tsx --test src/components/relay/api.test.ts
+      - run: npx tsx --test src/components/relay/*.test.ts
       - run: npm run build

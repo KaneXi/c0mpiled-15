@@ -689,6 +689,133 @@
 .skip:focus {
   top: 12px;
 }
+.tourWelcome {
+  margin-top: 22px;
+  padding: 22px 24px;
+  background: #e9ede1;
+  border: 1px solid #d0d8c5;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.tourWelcome p {
+  margin-top: 7px;
+  color: #526047;
+  font-size: 13px;
+  max-width: 58ch;
+}
+.tourWelcome .actions {
+  margin: 0;
+  flex-shrink: 0;
+}
+.tourEmpty {
+  padding: 18px 0;
+  color: #62695d;
+}
+.tourOverlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: transparent;
+  color: #30372f;
+}
+.tourOverlay::backdrop {
+  background: transparent;
+}
+.tourSpotlight {
+  position: fixed;
+  border: 2px solid #a9462e;
+  border-radius: 9px;
+  box-shadow: 0 0 0 9999px rgb(32 39 29 / 47%);
+  pointer-events: none;
+}
+.tourShade {
+  position: fixed;
+  inset: 0;
+  background: rgb(32 39 29 / 47%);
+}
+.tourCard {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: min(388px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 21px 23px 23px;
+  border: 1px solid #d9d9ca;
+  border-radius: 10px;
+  background: #fffefb;
+  box-shadow: 0 12px 45px rgb(32 39 29 / 22%);
+}
+.tourProgress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -8px -9px 5px 0;
+  color: #62695d;
+  font-size: 12px;
+}
+.tourCard h2 {
+  font-size: 20px;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  margin: 0 0 11px;
+}
+.tourCard > p {
+  font-size: 13px;
+  line-height: 1.65;
+}
+.tourNote {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid #e1e3d8;
+  color: #62695d;
+}
+.tourCard > .hint {
+  margin-top: 12px;
+}
+.tourButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+.tourButtons > div {
+  display: flex;
+  gap: 8px;
+}
+.tourButtons .primary,
+.tourButtons .secondary {
+  padding: 10px 12px;
+}
+.app [data-relay-tour] {
+  scroll-margin-top: 16px;
+}
+@media (max-width: 1080px) {
+  .tourWelcome {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+@media (max-width: 480px) {
+  .tourCard {
+    padding: 17px 18px 19px;
+  }
+  .tourWelcome {
+    padding: 20px 16px;
+  }
+}
 @media (min-width: 1450px) {
   .main {
     padding-top: 46px;
@@ -853,7 +980,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .app *,
-  .dialog * {
+  .dialog *,
+  .tourOverlay * {
     transition: none !important;
     scroll-behavior: auto !important;
   }

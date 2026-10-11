@@ -4,6 +4,10 @@ Relay coordinates nonprofit volunteer shifts. A manager publishes the schedule; 
 
 The public deployment target is [rescue.kanexi.me](https://rescue.kanexi.me). Deployment is verified; see [build status](BUILD_STATUS.md) for verified availability. Real Amazon Bedrock interpretation has passed the complete public end-to-end workflow. Phone calls are simulated, and payments are not enabled.
 
+## Start with the guide
+
+On your first visit, choose **Take a quick tour** or **Skip for now**. The six-step guide highlights the real schedule, volunteers, calls, attention area, pause control and activity feed. It changes views only; it never publishes a shift, places a call, submits a conversation or changes pause state. Replay it from **Help**. Back, Next, Skip and Escape are available.
+
 ## Try the workflow
 
 1. Open a guest workspace. It contains fictional Community Table volunteers and draft shifts. Review the volunteers' roles, availability, phone numbers, and separate calling permissions.

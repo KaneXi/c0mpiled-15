@@ -32,6 +32,8 @@ import type {
 import { RelayApiError, relayApi } from "./api";
 import { ShiftEditor, VolunteerEditor, type SendCommand } from "./Editors";
 import { browserZone, dateTime, label } from "./format";
+import { RelayTour } from "./RelayTour";
+import { RELAY_TOUR_KEY, type RelayTourTab } from "./tour-flow";
 import s from "./Relay.module.css";
 
 type Tab = "schedule" | "volunteers" | "calls";
@@ -230,7 +232,7 @@ function ShiftRow({
       ["pending", "approved", "exhausted"].includes(i.status),
   );
   return (
-    <article className={s.shift}>
+    <article className={s.shift} data-relay-tour="shift">
       <div className={s.shiftMain}>
         <div className={s.sectionHeading}>
           <h3>{shift.title}</h3>
@@ -425,7 +427,14 @@ function CallRow({
     );
   }
   return (
-    <article className={s.call}>
+    <article
+      className={s.call}
+      data-relay-tour={
+        ["queued", "in_progress", "analyzing", "failed"].includes(call.status)
+          ? "active-call"
+          : undefined
+      }
+    >
       <div className={s.sectionHeading}>
         <div>
           <h3>{volunteer?.name ?? "Volunteer"}</h3>
@@ -453,84 +462,87 @@ function CallRow({
         · Attempt {call.attempt} ·{" "}
         {dateTime(call.completedAt ?? call.startedAt ?? call.dueAt)}
       </p>
-      {call.status === "in_progress" && call.transport === "simulated" && (
-        <form onSubmit={submit} className={s.transcriptForm}>
-          <label>
-            Volunteer’s conversation
-            <textarea
-              rows={4}
-              required
-              maxLength={8000}
-              value={transcript}
-              onChange={(event) => setTranscript(event.target.value)}
-              placeholder="Write the whole conversation, including corrections or uncertainty…"
-            />
-          </label>
-          <p className={s.hint}>
-            You are playing the volunteer’s side of a simulated call. Relay
-            already started this check-in.
-          </p>
-          {manual ? (
-            <div className={s.manual}>
-              <p>
-                <strong>AWS AI is off.</strong> Choose an explicit simulator
-                result; this will not be labeled as AI.
-              </p>
-              <label>
-                Manual simulator outcome
-                <select
-                  required
-                  value={outcome}
-                  onChange={(event) =>
-                    setOutcome(event.target.value as CallOutcome | "")
-                  }
-                >
-                  <option value="">Choose a result</option>
-                  {outcomes.map((value) => (
-                    <option key={value} value={value}>
-                      {label(value)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : (
+      {["in_progress", "failed"].includes(call.status) &&
+        call.transport === "simulated" && (
+          <form onSubmit={submit} className={s.transcriptForm}>
+            <label>
+              Volunteer’s conversation
+              <textarea
+                rows={4}
+                required
+                maxLength={8000}
+                value={transcript}
+                onChange={(event) => setTranscript(event.target.value)}
+                placeholder="Write the whole conversation, including corrections or uncertainty…"
+              />
+            </label>
             <p className={s.hint}>
-              The server will interpret the whole conversation using{" "}
-              {view.providers.ai.label}.
+              You are playing the volunteer’s side of a simulated call. Relay
+              already started this check-in.
             </p>
-          )}
-          <button
-            className={s.primary}
-            type="submit"
-            disabled={busy || !transcript.trim() || (manual && !outcome)}
-          >
-            {busy
-              ? "Submitting…"
-              : manual
-                ? "Record simulator result"
-                : "Submit conversation"}
-          </button>
-          <button
-            className={s.secondary}
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              void send(
-                {
-                  type: "SUBMIT_CALL",
-                  callId: call.id,
-                  transcript: "Simulator transport: no answer.",
-                  simulatedOutcome: "no_answer",
-                },
-                "Simulated no-answer result recorded. Relay will determine the next step.",
-              )
-            }
-          >
-            Simulate no answer
-          </button>
-        </form>
-      )}
+            {manual ? (
+              <div className={s.manual}>
+                <p>
+                  <strong>AWS AI is off.</strong> Choose an explicit simulator
+                  result; this will not be labeled as AI.
+                </p>
+                <label>
+                  Manual simulator outcome
+                  <select
+                    required
+                    value={outcome}
+                    onChange={(event) =>
+                      setOutcome(event.target.value as CallOutcome | "")
+                    }
+                  >
+                    <option value="">Choose a result</option>
+                    {outcomes.map((value) => (
+                      <option key={value} value={value}>
+                        {label(value)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : (
+              <p className={s.hint}>
+                The server will interpret the whole conversation using{" "}
+                {view.providers.ai.label}.
+              </p>
+            )}
+            <button
+              className={s.primary}
+              type="submit"
+              disabled={busy || !transcript.trim() || (manual && !outcome)}
+            >
+              {busy
+                ? "Submitting…"
+                : manual
+                  ? "Record simulator result"
+                  : call.status === "failed"
+                    ? "Retry conversation"
+                    : "Submit conversation"}
+            </button>
+            <button
+              className={s.secondary}
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void send(
+                  {
+                    type: "SUBMIT_CALL",
+                    callId: call.id,
+                    transcript: "Simulator transport: no answer.",
+                    simulatedOutcome: "no_answer",
+                  },
+                  "Simulated no-answer result recorded. Relay will determine the next step.",
+                )
+              }
+            >
+              Simulate no answer
+            </button>
+          </form>
+        )}
       {call.status === "analyzing" && (
         <p className={s.waiting}>
           The server is interpreting the conversation. This page updates
@@ -586,6 +598,37 @@ export default function RelayDashboard() {
   const [notice, setNotice] = useState("");
   const [connection, setConnection] = useState("");
   const [help, setHelp] = useState(false);
+  const [welcome, setWelcome] = useState(false);
+  const tourReturnTab = useRef<Tab>("schedule");
+  useEffect(() => {
+    try {
+      setWelcome(!localStorage.getItem(RELAY_TOUR_KEY));
+    } catch {
+      setWelcome(true);
+    }
+  }, []);
+  const rememberTour = (completed: boolean) => {
+    try {
+      localStorage.setItem(
+        RELAY_TOUR_KEY,
+        completed ? "completed" : "dismissed",
+      );
+    } catch {
+      /* A blocked preference store must not block the guide. */
+    }
+    setWelcome(false);
+  };
+  const startTour = () => {
+    tourReturnTab.current = tab;
+    setWelcome(false);
+    setHelp(true);
+  };
+  const navigateTour = useCallback((next: RelayTourTab) => setTab(next), []);
+  const finishTour = (completed: boolean) => {
+    rememberTour(completed);
+    setTab(tourReturnTab.current);
+    setHelp(false);
+  };
   const [myself, setMyself] = useState<Incident | null>(null);
   const [reset, setReset] = useState(false);
   const [reload, setReload] = useState(0);
@@ -658,7 +701,7 @@ export default function RelayDashboard() {
   }, [update, reload]);
 
   const send: SendCommand = async (command, success) => {
-    if (!viewRef.current || commandPending.current) return false;
+    if (!viewRef.current || commandPending.current || help) return false;
     commandPending.current = true;
     setBusy(true);
     setError("");
@@ -722,13 +765,18 @@ export default function RelayDashboard() {
     (i) => i.status === "pending" || i.status === "approved",
   );
   const currentCalls = state.calls
-    .filter((c) => ["in_progress", "analyzing", "queued"].includes(c.status))
+    .filter((c) =>
+      ["in_progress", "analyzing", "queued", "failed"].includes(c.status),
+    )
     .sort(
       (a, b) =>
         (a.status === "queued" ? 1 : 0) - (b.status === "queued" ? 1 : 0),
     );
   const history = state.calls
-    .filter((c) => !["in_progress", "analyzing", "queued"].includes(c.status))
+    .filter(
+      (c) =>
+        !["in_progress", "analyzing", "queued", "failed"].includes(c.status),
+    )
     .slice()
     .reverse();
   const manager = state.volunteers.find(
@@ -774,7 +822,17 @@ export default function RelayDashboard() {
           ))}
         </nav>
         <div className={s.sidebarBottom}>
-          <button className={s.textButton} onClick={() => setHelp(true)}>
+          <button
+            className={s.textButton}
+            data-relay-help
+            disabled={busy || !!editor}
+            title={
+              editor
+                ? "Save or cancel your edit before taking the tour."
+                : "Take the quick tour"
+            }
+            onClick={startTour}
+          >
             <HelpCircle size={18} /> Help
           </button>
           <button
@@ -807,6 +865,7 @@ export default function RelayDashboard() {
           </div>
           <button
             className={state.paused ? s.primary : s.pause}
+            data-relay-tour="pause"
             disabled={busy}
             onClick={() =>
               void send(
@@ -832,6 +891,37 @@ export default function RelayDashboard() {
           <span>{openIncidents.length} open plans</span>
           <span>{currentCalls.length} active / queued calls</span>
         </div>
+        {welcome && (
+          <section
+            className={s.tourWelcome}
+            aria-labelledby="relay-welcome-title"
+          >
+            <div>
+              <h2 id="relay-welcome-title">
+                A little guidance to get started.
+              </h2>
+              <p>
+                See how a schedule becomes a check-in, and a gap becomes a
+                replacement. About a minute, with no changes to your workspace.
+              </p>
+            </div>
+            <div className={s.actions}>
+              <button
+                className={s.primary}
+                disabled={busy || !!editor}
+                onClick={startTour}
+              >
+                Take a quick tour <ArrowRight size={16} />
+              </button>
+              <button
+                className={s.textButton}
+                onClick={() => rememberTour(false)}
+              >
+                Skip for now
+              </button>
+            </div>
+          </section>
+        )}
         {connection && (
           <div className={s.error} role="status">
             {connection}
@@ -858,12 +948,18 @@ export default function RelayDashboard() {
         )}
         {tab === "schedule" && (
           <>
-            {openIncidents.length > 0 && (
-              <section className={s.attention}>
+            {(openIncidents.length > 0 || help) && (
+              <section className={s.attention} data-relay-tour="attention">
                 <div className={s.sectionHeading}>
                   <h2>Needs your attention</h2>
                   <span className={s.hint}>You decide who gets contacted.</span>
                 </div>
+                {openIncidents.length === 0 && (
+                  <p className={s.tourEmpty}>
+                    No replacement plan needs a decision right now. A real plan
+                    will appear here when Relay finds a gap.
+                  </p>
+                )}
                 {openIncidents.map((incident) => (
                   <Approval
                     key={incident.id}
@@ -876,7 +972,7 @@ export default function RelayDashboard() {
                 ))}
               </section>
             )}
-            <section className={s.section}>
+            <section className={s.section} data-relay-tour="schedule">
               <div className={s.sectionHeading}>
                 <div>
                   <h2>Schedule & coverage</h2>
@@ -927,7 +1023,7 @@ export default function RelayDashboard() {
           </>
         )}
         {tab === "volunteers" && (
-          <section className={s.section}>
+          <section className={s.section} data-relay-tour="volunteers">
             <div className={s.sectionHeading}>
               <h2>
                 Volunteers{" "}
@@ -952,7 +1048,11 @@ export default function RelayDashboard() {
             )}
             <div className={s.volunteerList}>
               {state.volunteers.map((volunteer) => (
-                <article key={volunteer.id} className={s.volunteer}>
+                <article
+                  key={volunteer.id}
+                  className={s.volunteer}
+                  data-relay-tour="volunteer"
+                >
                   <div className={s.avatar} aria-hidden="true">
                     {volunteer.name
                       .split(" ")
@@ -1036,7 +1136,7 @@ export default function RelayDashboard() {
         )}
         {tab === "calls" && (
           <>
-            <section className={s.section}>
+            <section className={s.section} data-relay-tour="calls">
               <div className={s.sectionHeading}>
                 <h2>Active & queued calls</h2>
                 <Badge>Simulated transport</Badge>
@@ -1192,42 +1292,13 @@ export default function RelayDashboard() {
         </Dialog>
       )}
       {help && (
-        <Dialog title="A quick guide to Relay" onClose={() => setHelp(false)}>
-          <ol className={s.help}>
-            <li>
-              <strong>Make the schedule.</strong> Create a draft shift, assign
-              qualified volunteers and publish it. Only you publish the initial
-              schedule.
-            </li>
-            <li>
-              <strong>Let Relay check in.</strong> The server plans due calls.
-              In Calls, write the volunteer’s whole reply when a simulated call
-              starts.
-            </li>
-            <li>
-              <strong>Review a gap.</strong> Relay shows eligible candidates.
-              Yes approves the listed outreach; No stops the plan. Assign myself
-              asks you to confirm first.
-            </li>
-            <li>
-              <strong>Follow the result.</strong> Each call records its outcome
-              and next action. The server rechecks coverage before saving a
-              replacement.
-            </li>
-            <li>
-              <strong>Pause whenever needed.</strong> Pause AI Calls stops new
-              calls. Active calls can finish safely.
-            </li>
-          </ol>
-          <p className={s.hint}>
-            Fictional workspace. No real calls or payments. Provider status
-            below the workspace tells you whether interpretation uses Bedrock or
-            an explicit manual simulator.
-          </p>
-          <button className={s.primary} onClick={() => setHelp(false)}>
-            Got it
-          </button>
-        </Dialog>
+        <RelayTour
+          onNavigate={navigateTour}
+          onClose={finishTour}
+          hasPlans={openIncidents.length > 0}
+          hasCalls={currentCalls.length > 0}
+          aiLabel={view.providers.ai.label}
+        />
       )}
     </div>
   );
@@ -1235,7 +1306,7 @@ export default function RelayDashboard() {
 
 function ActivityList({ view }: { view: RelayView }) {
   return (
-    <section className={s.section}>
+    <section className={s.section} data-relay-tour="activity">
       <h2>Recent activity</h2>
       {view.state.activity.length ? (
         <ol className={s.activity}>

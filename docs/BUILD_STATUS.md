@@ -4,7 +4,7 @@ Updated 2026-10-11. Status reflects implementation and verification, not planned
 
 | Area | Status | Evidence / remaining work |
 |---|---|---|
-| Shared contract and nonprofit UI | Implemented | Next.js routes render Relay; Business switch removed from active product |
+| Shared contract and nonprofit UI | Implemented; tests passing | Relay dashboard with first-visit opt-in, six-step spotlight tour and Help replay; appearance still needs browser verification |
 | Manager scheduling and constraints | Implemented; tests passing | Human-only publish, phone validation, role/availability/overlap guards |
 | Automatic workflow and approved replacement | Implemented; tests passing | Pause, consent, quiet hours, retries, frozen candidate lists, stale results and single replacement |
 | Local persistence and guest isolation | Implemented; tests passing | SQLite restart/readback, opaque sessions, tenant isolation, command receipts and version conflicts |
@@ -20,7 +20,7 @@ No production phone call or payment is represented as completed. No change has b
 
 ## Verified checks
 
-- 131 automated tests across nine suites, plus three UI API boundary tests: passed.
+- 131 automated tests across nine suites, plus six UI API and guided-tour tests: passed.
 - TypeScript, ESLint, production Next.js build, website bundle and Lambda bundle: passed.
 - Public end-to-end smoke: passed on 2026-10-11 at 20:19 UTC, with three real Bedrock interpretations, manager approval, pause/resume, one replacement, stopped outreach, idempotent replay and persistent DynamoDB readback.
 - Independent scheduled worker: verified on the public deployment at 20:22 UTC. A future check-in started after publication without any further mutation request.

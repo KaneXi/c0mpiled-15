@@ -6,6 +6,8 @@ Relay helps a nonprofit manager publish a schedule, confirm attendance and fill 
 
 This branch contains a fictional guest demonstration. Calls are explicitly simulated. The deployed Amazon Bedrock integration interprets full conversation text. No real telephone calls or payments are made.
 
+First visit: choose **Take a quick tour** for a skippable guided walkthrough. Use **Help** to replay it.
+
 ## One workflow
 
 Publish the sample meal-packing shift. Relay starts a simulated check-in automatically. Enter a cancellation, approve the replacement plan with **Yes**, decline the first replacement offer, and accept the second. Relay assigns one replacement and stops outreach. **No** rejects a plan. **Assign myself** validates the manager's availability and qualifications. **Pause AI Calls** stops new calls while preserving the queue and history.
@@ -38,7 +40,7 @@ SQLite saves local fictional tenant data under `.data/`, which is ignored by Git
 npm run typecheck
 npm run lint
 npm test
-npx tsx --test src/components/relay/api.test.ts
+npx tsx --test src/components/relay/*.test.ts
 npm run build
 npm run build:web
 npm run build:lambda
