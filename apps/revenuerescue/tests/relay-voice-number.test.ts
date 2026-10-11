@@ -51,7 +51,13 @@ describe("AWS caller lifecycle without real calls", () => {
     const f = fixture();
     await provisionCaller(f.connect, f.db, "test", f.read());
     const token = f.read().phoneTest!.allocationToken;
-    expect(token).toHaveLength(64);
+    expect(token).toMatch(
+      /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/,
+    );
+    const claim = f.send.mock.calls[1][0] as unknown as {
+      input: { ClientToken: string };
+    };
+    expect(claim.input.ClientToken).toBe(token);
     await provisionCaller(f.connect, f.db, "test", f.read());
     expect(f.send).toHaveBeenCalledTimes(2);
     expect(f.read().phoneTest!.phoneNumberId).toBe("phone-1");

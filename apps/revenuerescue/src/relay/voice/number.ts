@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   ConnectClient,
   SearchAvailablePhoneNumbersCommand,
@@ -47,7 +47,8 @@ export async function provisionCaller(
         phoneTest: {
           ...current.phoneTest,
           allocationNumber: number,
-          allocationToken: createHash("sha256").update(runId).digest("hex"),
+          // ClaimPhoneNumber requires a UUID, persisted before the first request.
+          allocationToken: randomUUID(),
           detail:
             "Preparing the temporary caller number. The first inquiry will wait for its scheduled time.",
           updatedAt: new Date().toISOString(),
@@ -139,6 +140,11 @@ export async function prepareCaller(
   try {
     return await provisionCaller(connect, db, tenant, state);
   } catch (error) {
+    console.error("Caller provisioning failed", {
+      error: error instanceof Error ? error.name : "UnknownError",
+      requestId: (error as { $metadata?: { requestId?: string } })?.$metadata
+        ?.requestId,
+    });
     const definitive =
       error instanceof Error &&
       [
