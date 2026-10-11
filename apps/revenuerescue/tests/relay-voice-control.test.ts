@@ -30,6 +30,25 @@ function fixture() {
 }
 afterEach(() => vi.unstubAllEnvs());
 describe("website-owned phone planning", () => {
+  it("starts immediately with the saved hours and rejects duplicate or expired starts", () => {
+    const { s, setup } = fixture();
+    const ready = preparePhoneTest(s, setup, now);
+    const started = schedulePhoneTest(ready, undefined, now, true);
+    expect(started.phoneTest?.scheduledFor).toBe(now);
+    expect(started.phoneTest?.runsScheduled).toBe(1);
+    expect(started.shifts).toEqual(ready.shifts);
+    expect(started.paused).toBe(false);
+    expect(() => schedulePhoneTest(started, undefined, now, true)).toThrow(
+      /already/,
+    );
+    expect(() =>
+      schedulePhoneTest(ready, undefined, setup.start, true),
+    ).toThrow(/check-in window/);
+    ready.phoneTest!.closesAt = now;
+    expect(() => schedulePhoneTest(ready, undefined, now, true)).toThrow(
+      /three minutes/,
+    );
+  });
   it("saves the chosen order and hours without starting or arming calls", () => {
     const { s, setup } = fixture();
     const next = preparePhoneTest(s, setup, now);

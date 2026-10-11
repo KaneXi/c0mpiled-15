@@ -2,7 +2,7 @@ name: Relay checks
 on:
   pull_request:
   push:
-    branches: ['feat/**', 'codex/revenuerescue-product']
+    branches: ['main', 'feat/**', 'codex/revenuerescue-product']
 jobs:
   test:
     runs-on: ubuntu-latest

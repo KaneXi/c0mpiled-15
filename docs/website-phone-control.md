@@ -42,3 +42,11 @@ Credentials, real telephone numbers, the presenter code and private deployment s
 Type checking, lint, 162 automated tests and the web/API/voice builds passed. Tests cover website authorization, role selection, timing, cancellation, missed starts, retained history, public redaction, claim recovery, cleanup, refusal-to-replacement progression and acceptance-to-assignment logic.
 
 The prior real test verified the original participant's refusal and a subsequent replacement call. The replacement answer was uncertain, so successful telephone acceptance was not verified. Revised wording and the complete website-triggered timed lifecycle await the presenter's next real test. Deployment did not initiate another call.
+
+## Immediate website test
+
+After saving the two participants and exact future shift hours, enter the presenter code, authorize the bounded two-call sequence, and click **Call [first participant] now**. No inquiry time is required for this button. The saved plan is used unchanged; unsaved form edits disable start. Only a clear refusal triggers the eligible replacement, and full acceptance is required to confirm coverage.
+
+The API persists and arms the run before asynchronously waking the dedicated voice Lambda. Set `VOICE_FUNCTION_NAME` and optionally `VOICE_FUNCTION_REGION` (default `us-east-1`) on the core API, and grant its role `lambda:InvokeFunction` on that exact function ARN only. AWS invocation uses `InvocationType: Event`; a 202 acknowledges queuing, not a connected telephone call. See [AWS Invoke documentation](https://docs.aws.amazon.com/lambda/latest/api/API_Invoke.html).
+
+Duplicate starts return 409 without invoking the worker again. Dispatch timeout leaves the same run armed for the existing minute worker, rather than creating another run. Caller provisioning can delay ringing. Cancellation, service expiry, consent, allowed numbers and existing call limits still apply. No real call is made by tests, builds or deployment. The original scheduled option remains available.

@@ -1,3 +1,4 @@
+import { wakeVoiceWorker } from "./dispatch";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { getStore, ServiceError } from "../server/store";
 import { z } from "zod";
@@ -7,8 +8,13 @@ export function schedulePhoneTest(
   state: RelayState,
   scheduledFor: unknown,
   now: string,
+  immediate = false,
 ): RelayState {
-  const due = typeof scheduledFor === "string" ? Date.parse(scheduledFor) : NaN;
+  const due = immediate
+    ? Date.parse(now)
+    : typeof scheduledFor === "string"
+      ? Date.parse(scheduledFor)
+      : NaN;
   const test = state.phoneTest;
   if (
     test?.mode !== "outbound" ||
@@ -22,7 +28,7 @@ export function schedulePhoneTest(
     );
   if ((test.runsScheduled || 0) >= 3)
     throw new ServiceError("This demo has reached its three-run limit.", 409);
-  if (!Number.isFinite(due) || due < Date.parse(now) + 10_000)
+  if (!Number.isFinite(due) || due < Date.parse(now) + (immediate ? 0 : 10_000))
     throw new ServiceError(
       "Choose an inquiry time at least ten seconds in the future.",
     );
@@ -53,8 +59,9 @@ export function schedulePhoneTest(
       runsScheduled: (test.runsScheduled || 0) + 1,
       stage: "waiting",
       updatedAt: now,
-      detail:
-        "Inquiry scheduled. No call will be placed before the selected time.",
+      detail: immediate
+        ? "Start requested on the website. Preparing the caller and confirming the saved shift hours."
+        : "Inquiry scheduled. No call will be placed before the selected time.",
     },
   };
 }
@@ -189,7 +196,7 @@ export function preparePhoneTest(
         (old.history?.length || 0) + (old.startedAt ? 1 : 0),
       stage: "ready",
       detail:
-        "Test prepared on the website. Choose an inquiry time and authorize the two-call sequence.",
+        "Test prepared on the website. Authorize the two-call sequence, then call now or schedule an inquiry.",
       updatedAt: now,
       closesAt: new Date(closesAt).toISOString(),
       history,
@@ -218,7 +225,9 @@ export async function controlPhoneTest(input: unknown) {
           "authorizeCalls",
         ].includes(k),
     ) ||
-    !["prepare", "schedule", "stop"].includes(String(value.phoneTestAction)) ||
+    !["prepare", "schedule", "start_now", "stop"].includes(
+      String(value.phoneTestAction),
+    ) ||
     typeof value.code !== "string"
   )
     throw new ServiceError("Invalid phone control.");
@@ -242,14 +251,30 @@ export async function controlPhoneTest(input: unknown) {
     const now = new Date().toISOString();
     if (value.phoneTestAction === "prepare")
       return preparePhoneTest(state, value.setup, now);
-    if (value.phoneTestAction === "schedule") {
+    if (
+      value.phoneTestAction === "schedule" ||
+      value.phoneTestAction === "start_now"
+    ) {
       if (value.authorizeCalls !== true)
         throw new ServiceError(
           "Confirm authorization for the two real test calls.",
         );
       if (process.env.VOICE_SERVICE_READY !== "true")
         throw new ServiceError("Automatic calling is not enabled.", 503);
-      return schedulePhoneTest(state, value.scheduledFor, now);
+      if (
+        value.phoneTestAction === "start_now" &&
+        !process.env.VOICE_FUNCTION_NAME
+      )
+        throw new ServiceError(
+          "Immediate calling is not configured. Use a scheduled inquiry.",
+          503,
+        );
+      return schedulePhoneTest(
+        state,
+        value.scheduledFor,
+        now,
+        value.phoneTestAction === "start_now",
+      );
     }
     return {
       ...state,
@@ -262,5 +287,8 @@ export async function controlPhoneTest(input: unknown) {
       },
     };
   });
-  return { ok: true };
+  // Persist first. An ambiguous dispatch timeout must never disarm or create a second run.
+  const dispatch =
+    value.phoneTestAction === "start_now" ? await wakeVoiceWorker() : undefined;
+  return { ok: true, dispatch };
 }

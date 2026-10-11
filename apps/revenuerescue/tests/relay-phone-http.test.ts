@@ -1,9 +1,13 @@
-import { beforeAll, afterAll, expect, it } from "vitest";
+import { beforeAll, afterAll, expect, it, vi } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getStore } from "../src/relay/server/store";
 import { handleRelayRequest } from "../src/relay/server/http";
+vi.mock("../src/relay/voice/dispatch", () => ({
+  wakeVoiceWorker: vi.fn().mockResolvedValue("queued"),
+}));
+import { wakeVoiceWorker } from "../src/relay/voice/dispatch";
 const dir = mkdtempSync(join(tmpdir(), "relay-phone-http-"));
 const code = "fictional-presenter-code";
 beforeAll(() => {
@@ -18,6 +22,7 @@ afterAll(() => {
     "VOICE_ALLOWED_PHONES",
     "RELAY_PUBLIC_TEST_TENANT",
     "VOICE_SERVICE_READY",
+    "VOICE_FUNCTION_NAME",
   ])
     delete process.env[key];
 });
@@ -79,6 +84,39 @@ it("requires the presenter code and explicit call authorization; writes remain s
   expect((await post({ ...schedule, authorizeCalls: true })).status).toBe(409);
   expect((await post({ phoneTestAction: "stop", code })).status).toBe(200);
   expect((await getStore().read(tenant)).paused).toBe(true);
+});
+it("immediate starts require authorization and dispatch only once after saving the run", async () => {
+  const tenant = process.env.RELAY_PUBLIC_TEST_TENANT!;
+  const state = await getStore().read(tenant);
+  const people = state.volunteers.filter(
+    (v) => v.id !== state.managerVolunteerId,
+  );
+  const setup = {
+    originalId: people[1].id,
+    replacementId: people[0].id,
+    start: new Date(Date.now() + 20 * 60_000).toISOString(),
+    end: new Date(Date.now() + 80 * 60_000).toISOString(),
+  };
+  await post({ phoneTestAction: "prepare", code, setup });
+  const command = { phoneTestAction: "start_now", code, authorizeCalls: true };
+  expect((await post({ ...command, code: "wrong" })).status).toBe(403);
+  expect((await post({ ...command, authorizeCalls: false })).status).toBe(400);
+  expect((await post(command)).status).toBe(503);
+  process.env.VOICE_FUNCTION_NAME = "fictional-voice-worker";
+  vi.mocked(wakeVoiceWorker).mockImplementationOnce(async () => {
+    expect((await getStore().read(tenant)).phoneTest?.armedAt).toBeTruthy();
+    return "scheduled_retry";
+  });
+  const response = await post(command);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    ok: true,
+    dispatch: "scheduled_retry",
+  });
+  expect((await post(command)).status).toBe(409);
+  expect(wakeVoiceWorker).toHaveBeenCalledTimes(1);
+  expect((await getStore().read(tenant)).calls).toEqual([]);
+  await post({ phoneTestAction: "stop", code });
 });
 it("does not publish current or historic transcripts or AWS claim identifiers", async () => {
   const tenant = process.env.RELAY_PUBLIC_TEST_TENANT!;

@@ -5,7 +5,7 @@ import s from "./Relay.module.css";
 import { SubscriptionLink } from "./SubscriptionPlan";
 import { availabilityQuestion } from "@/relay/voice/prompts";
 const stages = {
-  waiting: "Waiting for inquiry time",
+  waiting: "Inquiry queued",
   ready: "Ready",
   calling: "Calling",
   completed: "Finished",
@@ -98,7 +98,9 @@ export function PhoneTestView({
       minute: "2-digit",
       timeZoneName: "short",
     }).format(new Date(value));
-  async function control(action: "prepare" | "schedule" | "stop") {
+  async function control(
+    action: "prepare" | "schedule" | "start_now" | "stop",
+  ) {
     setBusy(true);
     setMessage("");
     try {
@@ -124,6 +126,7 @@ export function PhoneTestView({
                 },
               }
             : {}),
+          ...(action === "start_now" ? { authorizeCalls } : {}),
           ...(action === "schedule"
             ? {
                 authorizeCalls,
@@ -141,10 +144,14 @@ export function PhoneTestView({
         throw new Error(data.error || "Could not change calling state.");
       setMessage(
         action === "prepare"
-          ? "Roster and shift saved. Set the inquiry time and confirm authorization below."
-          : action === "schedule"
-            ? "Inquiry scheduled. AWS starts at or shortly after that time, even if you close this page."
-            : "Sequence paused. No further calls will start.",
+          ? "Roster and shift saved. Confirm authorization, then call now or schedule an inquiry."
+          : action === "start_now"
+            ? data.dispatch === "queued"
+              ? "Start requested. AWS is preparing the caller; live progress appears below."
+              : "Start saved. The automatic worker will retry within a minute. Do not start another test."
+            : action === "schedule"
+              ? "Inquiry scheduled. AWS starts at or shortly after that time, even if you close this page."
+              : "Sequence paused. No further calls will start.",
       );
       if (action === "prepare")
         setInquiryTime(localValue(DateTime.now().plus({ minutes: 2 })));
@@ -292,10 +299,13 @@ export function PhoneTestView({
           )}
           {planChanged && (
             <p role="status">
-              Save your updated roster and shift before scheduling.
+              Save your updated roster and shift before starting a call.
             </p>
           )}
-          <h3>Schedule the first inquiry</h3>
+          <h3>Start the first inquiry</h3>
+          <p>
+            Call now to test the saved shift, or choose a later inquiry time.
+          </p>
           <label>
             Inquiry time · America/New_York
             <input
@@ -340,14 +350,31 @@ export function PhoneTestView({
             </span>
           </label>
           <p className={s.hint}>
-            At the inquiry time, the first person is asked about the exact shift
-            hours. Only an explicit refusal triggers the replacement call.
-            Unclear answers do not confirm coverage. The temporary caller number
-            is released automatically when the run ends.
+            The first person is asked about the exact shift hours. Only an
+            explicit refusal triggers the replacement call. Unclear answers do
+            not confirm coverage. The temporary caller number is released
+            automatically when the run ends.
           </p>
           <div className={s.actions}>
             <button
               className={s.primary}
+              disabled={
+                busy ||
+                !code ||
+                !authorizeCalls ||
+                !test.runId ||
+                planChanged ||
+                !!test.armedAt ||
+                !!test.startedAt
+              }
+              onClick={() => void control("start_now")}
+            >
+              {busy
+                ? "Please wait…"
+                : `Call ${savedOriginal?.name || "first person"} now`}
+            </button>
+            <button
+              className={s.secondary}
               disabled={
                 busy ||
                 !code ||

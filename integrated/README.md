@@ -1,6 +1,6 @@
 # Integrated deliveries
 
-**Relay is the current product:** a nonprofit volunteer scheduling and replacement workflow. Its readable source is in [`../apps/revenuerescue/`](../apps/revenuerescue/). Product changes belong on separate feature branches; `main` remains event-only.
+**Relay is the current product:** a nonprofit volunteer scheduling and replacement workflow. Its readable source is in [`../apps/revenuerescue/`](../apps/revenuerescue/). The owner authorized merging the complete product into `main`. Continue new work on separate feature branches.
 
 The target public address is [rescue.kanexi.me](https://rescue.kanexi.me). Deployment is verified; consult [build status](../docs/BUILD_STATUS.md) for verified availability.
 

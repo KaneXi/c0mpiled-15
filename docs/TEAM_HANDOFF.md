@@ -1,11 +1,11 @@
 # Team handoff — complete current Relay source
 
-Updated October 11, 2026. Use branch `feat/relay-sample-schedule` in `KaneXi/c0mpiled-15`; draft PR #6 targets `feat/1-relay-integration`, not `main`. The branch contains the complete current app, not just a patch. The separate team-repository proposal remains review-only.
+Updated October 11, 2026. The owner authorized PR #6 to integrate the full source into `main` in `KaneXi/c0mpiled-15`. Use updated `main` after the merge. The branch contains the complete current app, not just a patch. The separate team-repository proposal remains review-only.
 
 ## Start and branch safely
 
 ```sh
-git clone --branch feat/relay-sample-schedule https://github.com/KaneXi/c0mpiled-15.git
+git clone --branch main https://github.com/KaneXi/c0mpiled-15.git
 cd c0mpiled-15
 git switch -c feat/aws-monetization-integration
 cd apps/revenuerescue
@@ -73,6 +73,6 @@ Read `website-phone-control.md`, `subscription-plan.md` and `sample-schedule.md`
 
 ## Handoff verification
 
-The complete local check sequence passed: TypeScript, ESLint, 162 domain/API tests, 8 separate client/tutorial tests, optimized Next.js production build and web/API/voice bundles. An existing CI failure from reading `window` during a non-browser test was repaired with an environment guard and browser-query routing coverage. The Next.js build retains a non-fatal legacy CSS compatibility warning.
+The complete local check sequence passed: TypeScript, ESLint, 166 domain/API tests, 8 separate client/tutorial tests, optimized Next.js production build and web/API/voice bundles. An existing CI failure from reading `window` during a non-browser test was repaired with an environment guard and browser-query routing coverage. The Next.js build retains a non-fatal legacy CSS compatibility warning.
 
 After rebuilding and committing source, run `python3 scripts/package-handoff.py` from the repository root to regenerate both the readable-source download and AWS artifacts. Their manifests record the exact source commit and SHA-256 checksums. This packaging command has no cloud side effects.
