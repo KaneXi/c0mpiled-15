@@ -52,6 +52,22 @@ export interface RelayStore {
 }
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const nowSeconds = () => Math.floor(Date.now() / 1000);
+function analysisBudget(tenantId: string) {
+  if (
+    tenantId === process.env.RELAY_PUBLIC_TEST_TENANT &&
+    process.env.VOICE_ANALYSIS_LIMIT === "unlimited"
+  )
+    return { tenant: null, day: null, lifetime: null };
+  const requested = Number(process.env.VOICE_ANALYSIS_LIMIT || "20");
+  const tenant =
+    tenantId === process.env.RELAY_PUBLIC_TEST_TENANT &&
+    Number.isInteger(requested) &&
+    requested >= 20 &&
+    requested <= 500
+      ? requested
+      : 20;
+  return { tenant, day: Math.max(100, tenant), lifetime: 500 };
+}
 function check(record: TenantRecord | undefined): TenantRecord {
   if (!record || record.expiresAt <= nowSeconds())
     throw new ServiceError(
@@ -182,11 +198,11 @@ export class SqliteRelayStore implements RelayStore {
       .slice(0, 100)
       .map((r) => r.state.tenantId);
   }
-  private increment(key: string, limit: number) {
+  private increment(key: string, limit: number | null) {
     const row = this.db
       .prepare("SELECT amount FROM relay_usage WHERE key=?")
       .get(key) as { amount: number } | undefined;
-    if ((row?.amount ?? 0) >= limit)
+    if (limit !== null && (row?.amount ?? 0) >= limit)
       throw new ServiceError(
         "The demo analysis limit has been reached. No paid call was started.",
         429,
@@ -199,11 +215,15 @@ export class SqliteRelayStore implements RelayStore {
       .run(key);
   }
   async reserveAnalysis(tenantId: string) {
+    const budget = analysisBudget(tenantId);
     this.db.exec("BEGIN IMMEDIATE");
     try {
-      this.increment(`ai:day:${new Date().toISOString().slice(0, 10)}`, 100);
-      this.increment("ai:lifetime", 500);
-      this.increment(`ai:tenant:${tenantId}`, 20);
+      this.increment(
+        `ai:day:${new Date().toISOString().slice(0, 10)}`,
+        budget.day,
+      );
+      this.increment("ai:lifetime", budget.lifetime);
+      this.increment(`ai:tenant:${tenantId}`, budget.tenant);
       this.db.exec("COMMIT");
     } catch (error) {
       this.db.exec("ROLLBACK");
@@ -359,21 +379,27 @@ export class DynamoRelayStore implements RelayStore {
     return tenants.slice(0, 100);
   }
   async reserveAnalysis(tenantId: string) {
+    const budget = analysisBudget(tenantId);
     try {
       await this.db.send(
         new TransactWriteCommand({
           TransactItems: [
-            ["day:" + new Date().toISOString().slice(0, 10), 100],
-            ["lifetime", 500],
-            ["tenant:" + tenantId, 20],
+            ["day:" + new Date().toISOString().slice(0, 10), budget.day],
+            ["lifetime", budget.lifetime],
+            ["tenant:" + tenantId, budget.tenant],
           ].map(([key, limit]) => ({
             Update: {
               TableName: this.table,
               Key: { PK: `RELAY#AI#${key}` },
               UpdateExpression: "ADD #n :one",
-              ConditionExpression: "attribute_not_exists(#n) OR #n < :limit",
               ExpressionAttributeNames: { "#n": "amount" },
-              ExpressionAttributeValues: { ":one": 1, ":limit": limit },
+              ...(limit === null
+                ? { ExpressionAttributeValues: { ":one": 1 } }
+                : {
+                    ConditionExpression:
+                      "attribute_not_exists(#n) OR #n < :limit",
+                    ExpressionAttributeValues: { ":one": 1, ":limit": limit },
+                  }),
             },
           })),
         }),

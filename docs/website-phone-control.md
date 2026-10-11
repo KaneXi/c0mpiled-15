@@ -63,7 +63,7 @@ A clear full-shift confirmation updates the existing assignment or commits the e
 
 The first availability question is now included in the AI conversation context. The Bedrock instruction distinguishes short yes/no answers and contradictory speech-recognition text such as affirmative language followed by inability. Clarification asks for availability using alternative wording rather than silently rewriting the transcript. A separate, usage-metered Bedrock verification checks whether the full conversation supports each proposed confirmation/refusal before any assignment or manager notice; disagreement, invalid output or timeout withholds the action and requests clarification. It can withhold a proposed decision but cannot reverse one. On October 11, eight live Bedrock semantic cases passed (yes, no, contradictory positive/negative phrases, full confirmation, an explicit correction, the exact short affirmative and a resolved clarification). These checks validate text interpretation, not telephone transcription accuracy; a new participant-run phone test is still required.
 
-For the owner's requested next test, the core API accepts a private `VOICE_TEST_RUN_LIMIT` setting (default 3, bounded to 3–10). The configured allowance is displayed publicly; previous usage/history stays intact. This does not arm a run or authorize arbitrary recipients. The owner must still save the next shift, authorize the two-call budget and click start on the website.
+For the owner's requested next test, the core API accepts a private `VOICE_TEST_RUN_LIMIT` setting (default 3, bounded to 3–50). The configured allowance is displayed publicly; previous usage/history stays intact. This does not arm a run or authorize arbitrary recipients. The owner must still save the next shift, authorize the two-call budget and click start on the website.
 
 ## Homepage coordination and saved shift times
 
@@ -72,3 +72,11 @@ The homepage now brings task creation, the two preselected participants, complet
 A separately verified full-shift acceptance uses the authoritative saved shift rather than model-generated date offsets. This fixes a real case where "yes it will work" was correctly understood but invented UTC/EDT offsets prevented assignment. Conditional, partial and unresolved answers still require clarification. Historical failures are not rewritten as successes.
 
 The original dashboard layout, Schedule / Volunteers / Calls navigation, schedule cards and guided tour are preserved. Create shift and Manage calls open the real task controls within the dashboard. Manager messages and the replacement timeline are embedded below the schedule.
+
+## Owner-authorized unlimited recording runs
+
+The owner requested removal of the live run and speech-analysis caps for recording. Set `VOICE_TEST_RUN_LIMIT=unlimited` on the core API and `VOICE_ANALYSIS_LIMIT=unlimited` on the API and voice worker. The public state represents unlimited runs as `runLimit: null`; the website displays "No test-run limit." Historical run counts and AI usage counters remain intact.
+
+Unlimited analysis applies only to the exact privately configured live tenant. Guest tenant limits remain unchanged. This removes application usage caps, not AWS account limits or charges. Each sequence still calls only the existing two consented, allowlisted participants, requires fresh manager authorization and follows the existing service window. Deployment does not create tasks, arm runs, or start calls.
+
+Completed runs no longer lock the authorization checkbox. Save a fresh task before starting another sequence, then explicitly authorize calls. Disabled start buttons explain the required next action. Editing participants, shift hours or inquiry time clears previous consent. The original dashboard UI is preserved.

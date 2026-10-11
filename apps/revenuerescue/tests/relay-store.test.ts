@@ -16,6 +16,7 @@ function fixture() {
 }
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   stores.forEach((s) => s.close());
   dirs.forEach((d) => rmSync(d, { recursive: true, force: true }));
   stores = [];
@@ -107,9 +108,74 @@ describe("durable manager workspace", () => {
       store.reserveAnalysis(b.session.tenantId),
     ).resolves.toBeUndefined();
   });
+  it("renews only the designated live workspace's analysis allowance and keeps consumed usage", async () => {
+    const { store } = fixture();
+    const { session } = await store.createSession();
+    for (let i = 0; i < 20; i++) await store.reserveAnalysis(session.tenantId);
+    vi.stubEnv("RELAY_PUBLIC_TEST_TENANT", session.tenantId);
+    vi.stubEnv("VOICE_ANALYSIS_LIMIT", "500");
+    for (let i = 20; i < 500; i++)
+      await store.reserveAnalysis(session.tenantId);
+    await expect(store.reserveAnalysis(session.tenantId)).rejects.toThrow(
+      "limit",
+    );
+  });
 });
 
 describe("cloud worker discovery", () => {
+  it("removes live analysis conditions only when explicitly configured as unlimited", async () => {
+    vi.stubEnv("RELAY_PUBLIC_TEST_TENANT", "live-tenant");
+    vi.stubEnv("VOICE_ANALYSIS_LIMIT", "unlimited");
+    const send = vi
+      .spyOn(DynamoDBDocumentClient.prototype, "send")
+      .mockResolvedValue({} as never);
+    const store = new DynamoRelayStore("test-table");
+    await store.reserveAnalysis("live-tenant");
+    await store.reserveAnalysis("guest-tenant");
+    const updates = (index: number) =>
+      (
+        send.mock.calls[index][0].input as {
+          TransactItems: {
+            Update: {
+              ConditionExpression?: string;
+              ExpressionAttributeValues: Record<string, number>;
+            };
+          }[];
+        }
+      ).TransactItems.map((item) => item.Update);
+    expect(
+      updates(0).every(
+        (update) =>
+          !update.ConditionExpression &&
+          !(":limit" in update.ExpressionAttributeValues),
+      ),
+    ).toBe(true);
+    expect(updates(1).every((update) => !!update.ConditionExpression)).toBe(
+      true,
+    );
+  });
+  it("uses renewed budgets only for the exact live tenant in DynamoDB", async () => {
+    vi.stubEnv("RELAY_PUBLIC_TEST_TENANT", "live-tenant");
+    vi.stubEnv("VOICE_ANALYSIS_LIMIT", "500");
+    const send = vi
+      .spyOn(DynamoDBDocumentClient.prototype, "send")
+      .mockResolvedValue({} as never);
+    const store = new DynamoRelayStore("test-table");
+    await store.reserveAnalysis("live-tenant");
+    await store.reserveAnalysis("guest-tenant");
+    const limits = (index: number) =>
+      (
+        send.mock.calls[index][0].input as {
+          TransactItems: {
+            Update: { ExpressionAttributeValues: Record<string, number> };
+          }[];
+        }
+      ).TransactItems.map(
+        (item) => item.Update.ExpressionAttributeValues[":limit"],
+      );
+    expect(limits(0)).toEqual([500, 500, 500]);
+    expect(limits(1)).toEqual([100, 500, 20]);
+  });
   it("continues after a filtered page so active workspaces are not silently skipped", async () => {
     const send = vi
       .spyOn(DynamoDBDocumentClient.prototype, "send")
