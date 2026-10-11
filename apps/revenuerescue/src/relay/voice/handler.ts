@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { DynamoRelayStore } from "../server/store";
 import { createAgentProvider } from "../providers/agent";
-import { completeCall } from "../engine";
+import { saveVoiceAnswer } from "./decision";
 import { tickOutbound } from "./transport";
-import { availabilityQuestion, spokenShiftWindow } from "./prompts";
+import { availabilityQuestion, clarificationQuestion } from "./prompts";
 interface LexEvent {
   source?: string;
   sessionId?: string;
@@ -99,7 +99,9 @@ export async function handler(event: LexEvent) {
     .digest("hex");
   const cached = state.phoneTest.processedTurns?.find((r) => r.key === key);
   if (cached) return respond(cached.reply, cached.close);
-  const history = (attrs.relayHistory || "").slice(-4500);
+  const history = (
+    attrs.relayHistory || `Relay: ${availabilityQuestion(shift, volunteer)}`
+  ).slice(-4500);
   const transcript = (history + "\nVolunteer: " + text).trim();
   try {
     await db.reserveAnalysis(tenant);
@@ -111,7 +113,7 @@ export async function handler(event: LexEvent) {
       AbortSignal.timeout(14000),
     );
     const interpretation = result.interpretation;
-    const explicitQuestion = availabilityQuestion(shift, volunteer);
+    const explicitQuestion = clarificationQuestion(shift, volunteer);
     const clarify =
       interpretation.confidence < 0.8 ||
       !!interpretation.clarification ||
@@ -123,6 +125,26 @@ export async function handler(event: LexEvent) {
       attrs.relayHistory = (transcript + "\nRelay: " + explicitQuestion).slice(
         -5000,
       );
+      await db.mutate(
+        tenant,
+        undefined,
+        { id: key, fingerprint: key },
+        (current) => ({
+          ...current,
+          phoneTest: {
+            ...current.phoneTest!,
+            detail: `${volunteer.name}'s answer needs clarification. Asking again about the entire time slot; no assignment or replacement call has been authorized from this answer.`,
+            updatedAt: new Date().toISOString(),
+            events: [
+              ...current.phoneTest!.events,
+              {
+                at: new Date().toISOString(),
+                text: `Clarifying ${volunteer.name}'s availability: ${explicitQuestion}`,
+              },
+            ].slice(-30),
+          },
+        }),
+      );
       return respond(explicitQuestion, false);
     }
     let reply = "";
@@ -131,38 +153,17 @@ export async function handler(event: LexEvent) {
       state.revision,
       { id: key, fingerprint: key },
       (current) => {
-        const next = completeCall(
+        const saved = saveVoiceAnswer(
           current,
           call.id,
           interpretation,
-          "amazon-bedrock",
           transcript,
           new Date().toISOString(),
         );
-        const assignment = next.assignments.find(
-          (a) =>
-            a.shiftId === shift.id &&
-            a.volunteerId === volunteer.id &&
-            a.status === "confirmed",
-        );
-        reply = assignment
-          ? call.purpose === "replacement"
-            ? `Thank you. You are confirmed as the replacement for ${shift.title}, ${spokenShiftWindow(shift, volunteer.timezone)}.`
-            : `Thank you. You are confirmed for ${shift.title}, ${spokenShiftWindow(shift, volunteer.timezone)}.`
-          : interpretation.outcome === "declined"
-            ? call.purpose === "check_in"
-              ? "Thank you for letting me know. I will look for an eligible replacement."
-              : "Thank you. I will ask the next eligible person."
-            : "Thank you. Your answer was saved, but the full shift is not confirmed. The schedule needs review.";
-        const now = new Date().toISOString();
-        const detail = `${volunteer.name}: ${reply}`;
+        const next = saved.state;
+        reply = saved.reply;
         next.phoneTest = {
           ...next.phoneTest!,
-          detail,
-          updatedAt: now,
-          events: [...next.phoneTest!.events, { at: now, text: detail }].slice(
-            -30,
-          ),
           processedTurns: [
             ...(next.phoneTest!.processedTurns || []),
             { key, reply, close: true },

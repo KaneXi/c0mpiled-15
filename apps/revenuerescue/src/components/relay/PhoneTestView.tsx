@@ -191,6 +191,139 @@ export function PhoneTestView({
       {outbound && (
         <section
           className={s.phoneTestSection}
+          aria-labelledby="replacement-timeline"
+        >
+          <h2 id="replacement-timeline">Live shift responsibility</h2>
+          <p>
+            <strong>{shift.title}</strong>
+          </p>
+          <p>
+            <strong>
+              {format(shift.start)} – {format(shift.end)}
+            </strong>
+          </p>
+          <dl className={s.phoneTestFacts}>
+            <div>
+              <dt>Originally assigned</dt>
+              <dd>
+                {savedOriginal?.name ||
+                  state.volunteers.find((v) => v.id === previousOriginal)
+                    ?.name ||
+                  "Not selected"}
+              </dd>
+            </div>
+            <div>
+              <dt>Responsible now</dt>
+              <dd>{names || "Uncovered — no volunteer confirmed"}</dd>
+            </div>
+            <div>
+              <dt>Coverage</dt>
+              <dd>
+                {assignments.some((a) => a.status === "confirmed")
+                  ? "Confirmed — outreach stops"
+                  : "Awaiting full-shift confirmation"}
+              </dd>
+            </div>
+          </dl>
+          <h3>Replacement process</h3>
+          <ol className={s.phoneTestEvents}>
+            <li>
+              <strong>Schedule saved</strong>
+              <p>
+                {savedOriginal?.name || "The original volunteer"} is asked
+                first. {savedReplacement?.name || "An eligible replacement"} is
+                contacted only after a clear refusal.
+              </p>
+            </li>
+            {state.calls.map((call) => {
+              const person = state.volunteers.find(
+                (v) => v.id === call.volunteerId,
+              );
+              const accepted = state.assignments.some(
+                (a) =>
+                  a.volunteerId === call.volunteerId &&
+                  a.shiftId === shift.id &&
+                  a.status === "confirmed",
+              );
+              return (
+                <li key={call.id}>
+                  <strong>
+                    {call.purpose === "replacement"
+                      ? "Replacement inquiry"
+                      : "Original volunteer inquiry"}
+                    : {person?.name}
+                  </strong>
+                  <p>
+                    {format(shift.start)} – {format(shift.end)}
+                  </p>
+                  <p>
+                    {call.startedAt
+                      ? `Call started ${format(call.startedAt)}.`
+                      : "Waiting to call."}{" "}
+                    {call.completedAt
+                      ? `Answer saved ${format(call.completedAt)}.`
+                      : ""}
+                  </p>
+                  <p>
+                    {accepted
+                      ? `Accepted: ${person?.name} is now confirmed as responsible for this entire shift. No further replacement calls.`
+                      : call.result?.outcome === "declined" &&
+                          call.result.confidence >= 0.8 &&
+                          !call.result.clarification
+                        ? `Recorded as unavailable: ${person?.name}. Manager update recorded; checking the next eligible person.`
+                        : call.result
+                          ? `Needs review: ${call.result.summary}`
+                          : "Waiting for a clear spoken answer. No assignment change yet."}
+                  </p>
+                </li>
+              );
+            })}
+            <li>
+              <strong>Final assignment</strong>
+              <p>
+                {assignments.some((a) => a.status === "confirmed")
+                  ? `${names} · ${format(shift.start)} – ${format(shift.end)}. Saved in the schedule.`
+                  : state.paused && state.calls.length
+                    ? "No one confirmed this time slot. Manager action is required."
+                    : "Pending — a name appears here only after full-shift confirmation."}
+              </p>
+            </li>
+          </ol>
+          <h3>Manager notifications</h3>
+          <div role="log" aria-live="polite" aria-relevant="additions text">
+            {test.events.filter(
+              (event) =>
+                event.text.startsWith("Manager notified:") ||
+                event.text.startsWith("Clarifying "),
+            ).length ? (
+              <ol className={s.phoneTestEvents}>
+                {test.events
+                  .filter(
+                    (event) =>
+                      event.text.startsWith("Manager notified:") ||
+                      event.text.startsWith("Clarifying "),
+                  )
+                  .map((event, index) => (
+                    <li key={`${event.at}-${index}`}>
+                      <time dateTime={event.at}>{format(event.at)}</time>
+                      <p>{event.text}</p>
+                    </li>
+                  ))}
+              </ol>
+            ) : (
+              <p>No new manager notifications for this run.</p>
+            )}
+          </div>
+          <p className={s.hint}>
+            Manager messages are saved here before the next call. This page
+            refreshes automatically about every three seconds. These are in-app
+            notifications, not SMS.
+          </p>
+        </section>
+      )}
+      {outbound && (
+        <section
+          className={s.phoneTestSection}
           aria-labelledby="outbound-controls"
         >
           <h2 id="outbound-controls">Set up the next test</h2>
@@ -264,6 +397,16 @@ export function PhoneTestView({
               />
             </label>
           </div>
+          <button
+            className={s.textButton}
+            disabled={busy || !state.paused}
+            onClick={() => {
+              setShiftStart(localValue(DateTime.now().plus({ minutes: 20 })));
+              setShiftEnd(localValue(DateTime.now().plus({ minutes: 80 })));
+            }}
+          >
+            Use a fresh 1-hour shift, starting in 20 minutes
+          </button>
           <p className={s.hint}>
             Saving sets this test roster's availability to the selected shift.
             Actual attendance still requires a spoken answer. Past call results
@@ -292,8 +435,8 @@ export function PhoneTestView({
               </p>
               <p>{availabilityQuestion(shift, savedOriginal)}</p>
               <p className={s.hint}>
-                {Math.max(0, 3 - (test.runsScheduled || 0))} test runs remain in
-                this demo allowance.
+                {Math.max(0, (test.runLimit || 3) - (test.runsScheduled || 0))}{" "}
+                test runs remain in this demo allowance.
               </p>
             </div>
           )}

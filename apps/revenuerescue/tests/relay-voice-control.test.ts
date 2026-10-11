@@ -106,10 +106,21 @@ describe("website-owned phone planning", () => {
     vi.stubEnv("VOICE_ALLOWED_PHONES", "[]");
     expect(() => preparePhoneTest(s, setup, now)).toThrow();
   });
+  it("permits only the explicitly extended next run while preserving past usage", () => {
+    const { s, setup } = fixture();
+    s.phoneTest!.runsScheduled = 3;
+    vi.stubEnv("VOICE_TEST_RUN_LIMIT", "4");
+    const prepared = preparePhoneTest(s, setup, now);
+    expect(prepared.phoneTest?.runLimit).toBe(4);
+    const armed = schedulePhoneTest(prepared, undefined, now, true);
+    expect(armed.phoneTest?.runsScheduled).toBe(4);
+    armed.paused = true;
+    expect(() => preparePhoneTest(armed, setup, now)).toThrow(/test-run/);
+  });
   it("refuses an exhausted allowance and an ended service window", () => {
     const { s, setup } = fixture();
     s.phoneTest!.runsScheduled = 3;
-    expect(() => preparePhoneTest(s, setup, now)).toThrow(/three-run/);
+    expect(() => preparePhoneTest(s, setup, now)).toThrow(/test-run/);
     s.phoneTest!.runsScheduled = 0;
     vi.stubEnv("VOICE_SERVICE_ENDS_AT", now);
     expect(() => preparePhoneTest(s, setup, now)).toThrow(/window/);
