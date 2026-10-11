@@ -5,3 +5,18 @@ node_modules/
 __pycache__/
 .venv/
 .DS_Store
+
+.next/
+*.tsbuildinfo
+.data/
+*.sqlite*
+*.db*
+coverage/
+.local/
+*.local.json
+.npmrc
+*.log
+
+# Generated app build outputs
+apps/revenuerescue/out/
+apps/revenuerescue/standalone-output/
