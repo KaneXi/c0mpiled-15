@@ -4,7 +4,7 @@ The presenter sets the roster, shift and inquiry time. AWS executes the saved se
 
 ## Presenter workflow
 
-Open `https://rescue.kanexi.me/?phone-test=1` and enter the private presenter code. The page is publicly readable; changing real-call settings requires the code.
+Open `https://rescue.kanexi.me/` and enter the private manager access code. The homepage loads the real saved coordination state; `?demo=1` explicitly opens the separate simulator. The page is publicly readable; changing real-call settings requires the code.
 
 1. Select **Ask first** and **Ask as replacement** from the two consenting, allowlisted participants.
 2. Enter the dated shift start and end in America/New_York time. Click **Save roster & shift**. Saving prepares availability but does not schedule or start calls.
@@ -13,7 +13,7 @@ Open `https://rescue.kanexi.me/?phone-test=1` and enter the private presenter co
 5. Watch automatic updates. An explicit, confidently interpreted refusal triggers the eligible replacement. Only acceptance covering the complete shift confirms attendance.
 6. **Cancel / stop calling** cancels pending outreach or requests stopping an active contact on the next worker pass. Keep the presenter code available after reloading.
 
-AWS reserves a caller number after authorization, displays it when ready, and releases it when the run ends. Previous run results remain visible. Canceled runs consume the three-run demo allowance. The authorized service window and participant quiet hours remain enforced. No payment integration is involved.
+AWS reserves a caller number after authorization, displays it when ready, and releases it when the run ends. Previous run results remain visible. Canceled runs consume the configured run allowance. The authorized service window and participant quiet hours remain enforced. No payment integration is involved.
 
 ## Execution and failures
 
@@ -64,3 +64,9 @@ A clear full-shift confirmation updates the existing assignment or commits the e
 The first availability question is now included in the AI conversation context. The Bedrock instruction distinguishes short yes/no answers and contradictory speech-recognition text such as affirmative language followed by inability. Clarification asks for availability using alternative wording rather than silently rewriting the transcript. A separate, usage-metered Bedrock verification checks whether the full conversation supports each proposed confirmation/refusal before any assignment or manager notice; disagreement, invalid output or timeout withholds the action and requests clarification. It can withhold a proposed decision but cannot reverse one. On October 11, eight live Bedrock semantic cases passed (yes, no, contradictory positive/negative phrases, full confirmation, an explicit correction, the exact short affirmative and a resolved clarification). These checks validate text interpretation, not telephone transcription accuracy; a new participant-run phone test is still required.
 
 For the owner's requested next test, the core API accepts a private `VOICE_TEST_RUN_LIMIT` setting (default 3, bounded to 3–10). The configured allowance is displayed publicly; previous usage/history stays intact. This does not arm a run or authorize arbitrary recipients. The owner must still save the next shift, authorize the two-call budget and click start on the website.
+
+## Homepage coordination and saved shift times
+
+The homepage now brings task creation, the two preselected participants, complete shift responsibility and persistent manager messages together. Declined, unanswered and unconfirmed calls remain visible from the current run and archived history. These are in-app notifications; deployment does not send SMS or place calls.
+
+A separately verified full-shift acceptance uses the authoritative saved shift rather than model-generated date offsets. This fixes a real case where "yes it will work" was correctly understood but invented UTC/EDT offsets prevented assignment. Conditional, partial and unresolved answers still require clarification. Historical failures are not rewritten as successes.

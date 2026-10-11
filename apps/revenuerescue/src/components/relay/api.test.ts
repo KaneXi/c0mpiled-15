@@ -10,7 +10,7 @@ afterEach(() => {
 test("polling reads state without issuing a workflow command", async () => {
   let called = false;
   globalThis.fetch = async (input, init) => {
-    assert.equal(input, "/api/relay/state");
+    assert.equal(input, "/api/relay/state?phone-test=1");
     assert.equal(init?.method, undefined);
     assert.equal(init?.body, undefined);
     assert.equal(init?.credentials, "same-origin");
@@ -65,7 +65,8 @@ test("conflicts preserve the server error and never turn into success", async ()
 
 for (const [search, path] of [
   ["?phone-test=1", "/api/relay/state?phone-test=1"],
-  ["?phone-test=2", "/api/relay/state"],
+  ["", "/api/relay/state?phone-test=1"],
+  ["?demo=1", "/api/relay/state"],
 ]) {
   test(`browser query ${search} selects only its intended read endpoint`, async () => {
     const previous = Object.getOwnPropertyDescriptor(globalThis, "window");

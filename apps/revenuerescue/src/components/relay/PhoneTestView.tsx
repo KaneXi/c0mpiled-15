@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import type { RelayState } from "@/relay/contracts";
 import s from "./Relay.module.css";
 import { SubscriptionLink } from "./SubscriptionPlan";
+import { managerMessages } from "./manager-messages";
 import { availabilityQuestion } from "@/relay/voice/prompts";
 const stages = {
   waiting: "Inquiry queued",
@@ -37,7 +38,7 @@ export function PhoneTestView({
   )?.volunteerId;
   const first =
     test.originalVolunteerId ||
-    participants.find((person) => person.id !== previousOriginal)?.id ||
+    participants.find((person) => person.name.toLowerCase() === "parag")?.id ||
     participants[0]?.id ||
     "";
   const [originalId, setOriginalId] = useState(first);
@@ -48,21 +49,21 @@ export function PhoneTestView({
   );
   const [shiftStart, setShiftStart] = useState(() =>
     localValue(
-      test.runId
+      test.runId && !state.paused
         ? DateTime.fromISO(state.shifts[0].start)
         : DateTime.now().plus({ minutes: 20 }),
     ),
   );
   const [shiftEnd, setShiftEnd] = useState(() =>
     localValue(
-      test.runId
+      test.runId && !state.paused
         ? DateTime.fromISO(state.shifts[0].end)
         : DateTime.now().plus({ minutes: 80 }),
     ),
   );
   const [inquiryTime, setInquiryTime] = useState(() =>
     localValue(
-      test.scheduledFor
+      test.scheduledFor && !state.paused
         ? DateTime.fromISO(test.scheduledFor)
         : DateTime.now().plus({ minutes: 2 }),
     ),
@@ -98,6 +99,7 @@ export function PhoneTestView({
       minute: "2-digit",
       timeZoneName: "short",
     }).format(new Date(value));
+  const notifications = managerMessages(state);
   async function control(
     action: "prepare" | "schedule" | "start_now" | "stop",
   ) {
@@ -148,7 +150,7 @@ export function PhoneTestView({
           : action === "start_now"
             ? data.dispatch === "queued"
               ? "Start requested. AWS is preparing the caller; live progress appears below."
-              : "Start saved. The automatic worker will retry within a minute. Do not start another test."
+              : "Start saved. The automatic worker will retry within a minute. Do not start another calling sequence."
             : action === "schedule"
               ? "Inquiry scheduled. AWS starts at or shortly after that time, even if you close this page."
               : "Sequence paused. No further calls will start.",
@@ -165,7 +167,7 @@ export function PhoneTestView({
     }
   }
   return (
-    <main className={s.phoneTest}>
+    <main className={s.phoneTest} id="workspace-top">
       <div className={s.brand}>
         Relay<span>.</span>
       </div>
@@ -173,13 +175,13 @@ export function PhoneTestView({
         <div>
           <h1>
             {outbound
-              ? "One gap. The right replacement."
-              : `${state.volunteers[0].name}’s phone test`}
+              ? "Your volunteer schedule"
+              : `${state.volunteers[0].name}’s schedule`}
           </h1>
           <p>
             {outbound
               ? "Check availability. Contact eligible replacements. Confirm coverage."
-              : "Actual test schedule and live progress."}
+              : "Saved schedule and live progress."}
           </p>
         </div>
         <span className={`${s.badge} ${s.warning}`}>{stages[test.stage]}</span>
@@ -188,6 +190,256 @@ export function PhoneTestView({
         <SubscriptionLink />
       </p>
       {connection && <p role="alert">{connection}</p>}
+      <nav className={s.homeLinks} aria-label="Workspace sections">
+        <a href="#outbound-controls">Create task</a>
+        <a href="#manager-inbox">Manager messages ({notifications.length})</a>
+        <a href="#replacement-timeline">Live schedule</a>
+      </nav>
+      <section className={s.phoneTestSection} aria-labelledby="manager-inbox">
+        <h2 id="manager-inbox">Manager messages</h2>
+        <p className={s.hint}>Declined and unsuccessful calls stay here, including previous tasks. These are in-app messages.</p>
+        <div role="log" aria-live="polite" aria-relevant="additions">
+          {notifications.length ? (
+            <ul className={s.managerMessages}>
+              {notifications.map((item) => (
+                <li key={item.id}>
+                  <div><strong>{item.title}</strong><span className={`${s.badge} ${item.kind === "confirmed" ? s.good : s.warning}`}>{item.label}</span></div>
+                  <p>{item.message}</p>
+                  <p>{item.shiftTitle} · {format(item.start)} – {format(item.end)}</p>
+                  <time dateTime={item.at}>{format(item.at)}{item.previous ? " · Previous task" : ""}</time>
+                </li>
+              ))}
+            </ul>
+          ) : <p>No call updates yet. Save a task and start an inquiry to see the result here.</p>}
+        </div>
+      </section>
+      {outbound && (
+        <section
+          className={s.phoneTestSection}
+          aria-labelledby="outbound-controls"
+        >
+          <h2 id="outbound-controls">Create a task</h2>
+          <p>
+            Parag and Kane are already in your roster. The first person and their
+            replacement are selected below; choose the shift hours and save.
+          </p>
+          <label>
+            Manager access code{" "}
+            <input
+              type="password"
+              value={code}
+              autoComplete="off"
+              onChange={(event) => setCode(event.target.value)}
+              maxLength={64}
+            />
+          </label>
+          <div className={s.formGrid}>
+            <label>
+              Ask first
+              <select
+                value={originalId}
+                disabled={busy || !state.paused}
+                onChange={(event) => {
+                  setOriginalId(event.target.value);
+                  if (event.target.value === replacementId)
+                    setReplacementId(originalId);
+                }}
+              >
+                {participants.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name} · {person.phone}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Replacement · selected automatically
+              <select
+                value={replacementId}
+                disabled={busy || !state.paused}
+                onChange={(event) => {
+                  setReplacementId(event.target.value);
+                  if (event.target.value === originalId)
+                    setOriginalId(replacementId);
+                }}
+              >
+                {participants.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name} · {person.phone}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Shift starts · Eastern time
+              <input
+                type="datetime-local"
+                value={shiftStart}
+                disabled={busy || !state.paused}
+                onChange={(event) => setShiftStart(event.target.value)}
+              />
+            </label>
+            <label>
+              Shift ends · Eastern time
+              <input
+                type="datetime-local"
+                value={shiftEnd}
+                disabled={busy || !state.paused}
+                onChange={(event) => setShiftEnd(event.target.value)}
+              />
+            </label>
+          </div>
+          <button
+            className={s.textButton}
+            disabled={busy || !state.paused}
+            onClick={() => {
+              setShiftStart(localValue(DateTime.now().plus({ minutes: 20 })));
+              setShiftEnd(localValue(DateTime.now().plus({ minutes: 80 })));
+            }}
+          >
+            Use a fresh 1-hour shift, starting in 20 minutes
+          </button>
+          <p className={s.hint}>
+            Saving sets these participants’ availability to the selected shift.
+            Actual attendance still requires a spoken answer. Past call results
+            remain below.
+          </p>
+          <button
+            className={s.secondary}
+            disabled={
+              busy ||
+              !code ||
+              !state.paused ||
+              !!test.callerNumber ||
+              originalId === replacementId
+            }
+            onClick={() => void control("prepare")}
+          >
+            Save task
+          </button>
+          {test.runId && savedOriginal && savedReplacement && (
+            <div className={s.savedPhonePlan}>
+              <h3>Saved calling plan</h3>
+              <p>
+                <strong>{savedOriginal.name}</strong> first →{" "}
+                <strong>{savedReplacement.name}</strong> only if the first
+                person cannot attend.
+              </p>
+              <p>{availabilityQuestion(shift, savedOriginal)}</p>
+              <p className={s.hint}>
+                {Math.max(0, (test.runLimit || 3) - (test.runsScheduled || 0))}{" "}
+                calling sequences remain in the authorized allowance.
+              </p>
+            </div>
+          )}
+          {planChanged && (
+            <p role="status">
+              Save your updated roster and shift before starting a call.
+            </p>
+          )}
+          <h3>Start the first inquiry</h3>
+          <p>
+            Call now to confirm the saved shift, or choose a later inquiry time.
+          </p>
+          <label>
+            Inquiry time · America/New_York
+            <input
+              type="datetime-local"
+              value={inquiryTime}
+              disabled={busy || !!test.armedAt || !!test.startedAt}
+              onChange={(event) => setInquiryTime(event.target.value)}
+            />
+          </label>
+          <button
+            className={s.textButton}
+            disabled={busy || !!test.armedAt || !!test.startedAt}
+            onClick={() =>
+              setInquiryTime(localValue(DateTime.now().plus({ minutes: 2 })))
+            }
+          >
+            Use two minutes from now
+          </button>
+          {test.scheduledFor && (
+            <p role="status">
+              Inquiry scheduled for <strong>{format(test.scheduledFor)}</strong>
+              . The server checks once per minute; it may start up to a minute
+              later. You can close this page.
+            </p>
+          )}
+          {test.callerNumber && (
+            <p>
+              Caller number: <strong>{test.callerNumber}</strong>
+            </p>
+          )}
+          <label>
+            <span>
+              <input
+                type="checkbox"
+                checked={authorizeCalls}
+                disabled={busy || !!test.armedAt || !!test.startedAt}
+                onChange={(event) => setAuthorizeCalls(event.target.checked)}
+              />{" "}
+              I authorize up to two real calls to these consenting participants,
+              with a $2 test budget. AWS charges apply; this is not a hard
+              billing cap.
+            </span>
+          </label>
+          <p className={s.hint}>
+            The first person is asked about the exact shift hours. Only an
+            explicit refusal triggers the replacement call. Unclear answers do
+            not confirm coverage. The temporary caller number is released
+            automatically when the run ends.
+          </p>
+          <div className={s.actions}>
+            <button
+              className={s.primary}
+              disabled={
+                busy ||
+                !code ||
+                !authorizeCalls ||
+                !test.runId ||
+                planChanged ||
+                !!test.armedAt ||
+                !!test.startedAt
+              }
+              onClick={() => void control("start_now")}
+            >
+              {busy
+                ? "Please wait…"
+                : `Call ${savedOriginal?.name || "first person"} now`}
+            </button>
+            <button
+              className={s.secondary}
+              disabled={
+                busy ||
+                !code ||
+                !inquiryTime ||
+                !authorizeCalls ||
+                !test.runId ||
+                planChanged ||
+                !!test.armedAt ||
+                !!test.startedAt
+              }
+              onClick={() => void control("schedule")}
+            >
+              Schedule automatic inquiry
+            </button>
+            <button
+              className={s.secondary}
+              disabled={
+                busy ||
+                !code ||
+                (!test.startedAt && !test.armedAt) ||
+                state.paused
+              }
+              onClick={() => void control("stop")}
+            >
+              Cancel / stop calling
+            </button>
+          </div>
+          {message && <p role="status">{message}</p>}
+        </section>
+      )}
       {outbound && (
         <section
           className={s.phoneTestSection}
@@ -289,263 +541,6 @@ export function PhoneTestView({
               </p>
             </li>
           </ol>
-          <h3>Manager notifications</h3>
-          <div role="log" aria-live="polite" aria-relevant="additions text">
-            {test.events.filter(
-              (event) =>
-                event.text.startsWith("Manager notified:") ||
-                event.text.startsWith("Clarifying "),
-            ).length ? (
-              <ol className={s.phoneTestEvents}>
-                {test.events
-                  .filter(
-                    (event) =>
-                      event.text.startsWith("Manager notified:") ||
-                      event.text.startsWith("Clarifying "),
-                  )
-                  .map((event, index) => (
-                    <li key={`${event.at}-${index}`}>
-                      <time dateTime={event.at}>{format(event.at)}</time>
-                      <p>{event.text}</p>
-                    </li>
-                  ))}
-              </ol>
-            ) : (
-              <p>No new manager notifications for this run.</p>
-            )}
-          </div>
-          <p className={s.hint}>
-            Manager messages are saved here before the next call. This page
-            refreshes automatically about every three seconds. These are in-app
-            notifications, not SMS.
-          </p>
-        </section>
-      )}
-      {outbound && (
-        <section
-          className={s.phoneTestSection}
-          aria-labelledby="outbound-controls"
-        >
-          <h2 id="outbound-controls">Set up the next test</h2>
-          <p>
-            Choose who receives the first inquiry and who can replace them.
-            Names and masked numbers come from the authorized two-person roster.
-          </p>
-          <label>
-            Presenter code{" "}
-            <input
-              type="password"
-              value={code}
-              autoComplete="off"
-              onChange={(event) => setCode(event.target.value)}
-              maxLength={64}
-            />
-          </label>
-          <div className={s.formGrid}>
-            <label>
-              Ask first
-              <select
-                value={originalId}
-                disabled={busy || !state.paused}
-                onChange={(event) => {
-                  setOriginalId(event.target.value);
-                  if (event.target.value === replacementId)
-                    setReplacementId(originalId);
-                }}
-              >
-                {participants.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name} · {person.phone}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Ask as replacement
-              <select
-                value={replacementId}
-                disabled={busy || !state.paused}
-                onChange={(event) => {
-                  setReplacementId(event.target.value);
-                  if (event.target.value === originalId)
-                    setOriginalId(replacementId);
-                }}
-              >
-                {participants.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name} · {person.phone}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Shift starts · Eastern time
-              <input
-                type="datetime-local"
-                value={shiftStart}
-                disabled={busy || !state.paused}
-                onChange={(event) => setShiftStart(event.target.value)}
-              />
-            </label>
-            <label>
-              Shift ends · Eastern time
-              <input
-                type="datetime-local"
-                value={shiftEnd}
-                disabled={busy || !state.paused}
-                onChange={(event) => setShiftEnd(event.target.value)}
-              />
-            </label>
-          </div>
-          <button
-            className={s.textButton}
-            disabled={busy || !state.paused}
-            onClick={() => {
-              setShiftStart(localValue(DateTime.now().plus({ minutes: 20 })));
-              setShiftEnd(localValue(DateTime.now().plus({ minutes: 80 })));
-            }}
-          >
-            Use a fresh 1-hour shift, starting in 20 minutes
-          </button>
-          <p className={s.hint}>
-            Saving sets this test roster's availability to the selected shift.
-            Actual attendance still requires a spoken answer. Past call results
-            remain below.
-          </p>
-          <button
-            className={s.secondary}
-            disabled={
-              busy ||
-              !code ||
-              !state.paused ||
-              !!test.callerNumber ||
-              originalId === replacementId
-            }
-            onClick={() => void control("prepare")}
-          >
-            Save roster &amp; shift
-          </button>
-          {test.runId && savedOriginal && savedReplacement && (
-            <div className={s.savedPhonePlan}>
-              <h3>Saved calling plan</h3>
-              <p>
-                <strong>{savedOriginal.name}</strong> first →{" "}
-                <strong>{savedReplacement.name}</strong> only if the first
-                person cannot attend.
-              </p>
-              <p>{availabilityQuestion(shift, savedOriginal)}</p>
-              <p className={s.hint}>
-                {Math.max(0, (test.runLimit || 3) - (test.runsScheduled || 0))}{" "}
-                test runs remain in this demo allowance.
-              </p>
-            </div>
-          )}
-          {planChanged && (
-            <p role="status">
-              Save your updated roster and shift before starting a call.
-            </p>
-          )}
-          <h3>Start the first inquiry</h3>
-          <p>
-            Call now to test the saved shift, or choose a later inquiry time.
-          </p>
-          <label>
-            Inquiry time · America/New_York
-            <input
-              type="datetime-local"
-              value={inquiryTime}
-              disabled={busy || !!test.armedAt || !!test.startedAt}
-              onChange={(event) => setInquiryTime(event.target.value)}
-            />
-          </label>
-          <button
-            className={s.textButton}
-            disabled={busy || !!test.armedAt || !!test.startedAt}
-            onClick={() =>
-              setInquiryTime(localValue(DateTime.now().plus({ minutes: 2 })))
-            }
-          >
-            Use two minutes from now
-          </button>
-          {test.scheduledFor && (
-            <p role="status">
-              Inquiry scheduled for <strong>{format(test.scheduledFor)}</strong>
-              . The server checks once per minute; it may start up to a minute
-              later. You can close this page.
-            </p>
-          )}
-          {test.callerNumber && (
-            <p>
-              Caller number: <strong>{test.callerNumber}</strong>
-            </p>
-          )}
-          <label>
-            <span>
-              <input
-                type="checkbox"
-                checked={authorizeCalls}
-                disabled={busy || !!test.armedAt || !!test.startedAt}
-                onChange={(event) => setAuthorizeCalls(event.target.checked)}
-              />{" "}
-              I authorize up to two real calls to these consenting participants,
-              with a $2 test budget. AWS charges apply; this is not a hard
-              billing cap.
-            </span>
-          </label>
-          <p className={s.hint}>
-            The first person is asked about the exact shift hours. Only an
-            explicit refusal triggers the replacement call. Unclear answers do
-            not confirm coverage. The temporary caller number is released
-            automatically when the run ends.
-          </p>
-          <div className={s.actions}>
-            <button
-              className={s.primary}
-              disabled={
-                busy ||
-                !code ||
-                !authorizeCalls ||
-                !test.runId ||
-                planChanged ||
-                !!test.armedAt ||
-                !!test.startedAt
-              }
-              onClick={() => void control("start_now")}
-            >
-              {busy
-                ? "Please wait…"
-                : `Call ${savedOriginal?.name || "first person"} now`}
-            </button>
-            <button
-              className={s.secondary}
-              disabled={
-                busy ||
-                !code ||
-                !inquiryTime ||
-                !authorizeCalls ||
-                !test.runId ||
-                planChanged ||
-                !!test.armedAt ||
-                !!test.startedAt
-              }
-              onClick={() => void control("schedule")}
-            >
-              Schedule automatic inquiry
-            </button>
-            <button
-              className={s.secondary}
-              disabled={
-                busy ||
-                !code ||
-                (!test.startedAt && !test.armedAt) ||
-                state.paused
-              }
-              onClick={() => void control("stop")}
-            >
-              Cancel / stop calling
-            </button>
-          </div>
-          {message && <p role="status">{message}</p>}
         </section>
       )}
       <section className={s.phoneTestSection} aria-labelledby="test-schedule">
@@ -575,7 +570,7 @@ export function PhoneTestView({
       </section>
       {outbound && (
         <section className={s.phoneTestSection} aria-labelledby="call-sequence">
-          <h2 id="call-sequence">Calls and candidate selection</h2>
+          <h2 id="call-sequence">Call details</h2>
           {state.calls.length === 0 && (
             <p>
               No call has started. The next change will appear here
@@ -633,7 +628,7 @@ export function PhoneTestView({
       )}
       {!!test.history?.length && (
         <section className={s.phoneTestSection} aria-labelledby="past-tests">
-          <h2 id="past-tests">Past tests</h2>
+          <h2 id="past-tests">Previous tasks</h2>
           {test.history.map((run, index) => (
             <details key={`${run.endedAt}-${index}`}>
               <summary>
@@ -678,13 +673,13 @@ export function PhoneTestView({
         </p>
       </section>
       <p>
-        <a className={s.textButton} href="/">
-          Back to the workspace
+        <a className={s.textButton} href="#workspace-top">
+          Back to top
         </a>
       </p>
       <p className={s.hint}>
         {outbound
-          ? "Audio is transcribed for the scheduling assistant; recordings are not saved. Only the presenter can start this bounded phone test."
+          ? "Audio is transcribed for the scheduling assistant; recordings are not saved. Only an authorized manager can start calls."
           : "The completed test verified telephone connection and a spoken reminder. It did not verify two-way AI conversation."}
       </p>
     </main>

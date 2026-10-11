@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createRelayState } from "../src/relay/seed";
 import { schedulePhoneTest } from "../src/relay/voice/control";
 import { saveVoiceAnswer } from "../src/relay/voice/decision";
+import { verifyVoiceDecision } from "../src/relay/voice/verify";
 import { advanceOutbound } from "../src/relay/voice/workflow";
 import { applyCommand, coverage } from "../src/relay/engine";
 import type { CallOutcome, RelayState } from "../src/relay/contracts";
@@ -50,6 +51,52 @@ function finish(state: RelayState, outcome: CallOutcome) {
   return next.state;
 }
 describe("bounded real-call orchestration", () => {
+  it("assigns the saved shift after a natural acceptance despite model timezone errors", async () => {
+    let state = advanceOutbound(initial(), now);
+    state = finish(state, "declined");
+    state = advanceOutbound(state, now);
+    const call = state.calls.find((item) => item.status === "in_progress")!;
+    const shift = structuredClone(state.shifts[0]);
+    const interpretation = await verifyVoiceDecision(
+      {
+        outcome: "confirmed",
+        confidence: 0.95,
+        summary: "The hours work.",
+        clarification: "",
+        availableFrom: shift.start.replace("Z", "-04:00"),
+        availableUntil: shift.end.replace("Z", "-04:00"),
+      },
+      "Volunteer: yes it will work",
+      `Can you cover the entire shift from ${shift.start} to ${shift.end}?`,
+      new AbortController().signal,
+      async () => ({
+        $metadata: {},
+        stopReason: "end_turn",
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        metrics: { latencyMs: 1 },
+        output: {
+          message: {
+            role: "assistant",
+            content: [{ text: '{"supported":true}' }],
+          },
+        },
+      }),
+    );
+    state = saveVoiceAnswer(
+      state,
+      call.id,
+      interpretation,
+      "yes it will work",
+      now,
+    ).state;
+    expect(
+      state.assignments
+        .filter((item) => item.status === "confirmed")
+        .map((item) => item.volunteerId),
+    ).toEqual([call.volunteerId]);
+    expect(state.shifts[0]).toEqual(shift);
+    expect(advanceOutbound(state, now).calls).toHaveLength(2);
+  });
   it("confirms an original yes immediately and never calls a replacement", () => {
     let s = advanceOutbound(initial(), now);
     const shift = structuredClone(s.shifts[0]);

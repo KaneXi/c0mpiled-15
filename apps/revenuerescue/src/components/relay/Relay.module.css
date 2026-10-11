@@ -1153,3 +1153,60 @@
     width: 100%;
   }
 }
+
+.homeLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 24px 0;
+}
+.homeLinks a {
+  color: #833b27;
+  text-underline-offset: 4px;
+  padding: 10px 0;
+}
+.homeLinks a:focus-visible {
+  outline: 2px solid #833b27;
+  outline-offset: 4px;
+}
+.managerMessages {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid #d8d9cf;
+  border-radius: 10px;
+  background: #f6f7ee;
+}
+.managerMessages li {
+  padding: 18px 20px;
+}
+.managerMessages li + li {
+  border-top: 1px solid #d8d9cf;
+}
+.managerMessages li > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.managerMessages p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.managerMessages time {
+  color: #595c51;
+  font-size: 13px;
+}
+.phoneTest h1 {
+  font-size: 30px;
+  line-height: 1.2;
+}
+.phoneTest h2 {
+  font-size: 22px;
+}
+.phoneTest [id] {
+  scroll-margin-top: 20px;
+}
