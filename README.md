@@ -1,40 +1,44 @@
 # Relay — volunteer coordination
 
-Relay helps a nonprofit manager publish a schedule, confirm attendance and fill gaps through a short approved outreach plan.
+**Complete current source branch:** [`feat/relay-sample-schedule`](https://github.com/KaneXi/c0mpiled-15/tree/feat/relay-sample-schedule) · **[Draft PR #6](https://github.com/KaneXi/c0mpiled-15/pull/6)**
 
-**Public workspace:** https://rescue.kanexi.me/
+Start with **[TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)** for setup, source ownership, deployment boundaries and the remaining official AWS payment integration. All current application source is included on this branch. `main` stays event-only; no merge or replacement of teammates' work is implied.
 
-This branch contains a fictional guest demonstration. Calls are explicitly simulated. The deployed Amazon Bedrock integration interprets full conversation text. No real telephone calls or payments are made.
+## Public entry points
 
-First visit: choose **Take a quick tour** for a skippable guided walkthrough. Use **Help** to replay it.
+- [Guest workspace](https://rescue.kanexi.me/): fictional schedules, guided help, automatic simulated check-ins and manager-approved replacement plans.
+- [Real telephone demonstration](https://rescue.kanexi.me/?phone-test=1): presenter-controlled roster, exact shift times and scheduled outreach. AWS runs it independently of the browser. Only a configured consenting allowlist can receive calls.
+- [Subscription offer](https://rescue.kanexi.me/?plan=1): first month free, then $4.99 USD/month. **Checkout is not connected and no payment is collected.**
 
-## One workflow
+The previous real test verified an original volunteer's spoken refusal and an automatic replacement call. The replacement response was uncertain, so no replacement was assigned. The revised timed website workflow and successful telephone acceptance still need a presenter-run end-to-end test. Guest sessions are not production customer accounts.
 
-Publish the sample meal-packing shift. Relay starts a simulated check-in automatically. Enter a cancellation, approve the replacement plan with **Yes**, decline the first replacement offer, and accept the second. Relay assigns one replacement and stops outreach. **No** rejects a plan. **Assign myself** validates the manager's availability and qualifications. **Pause AI Calls** stops new calls while preserving the queue and history.
+## Readable source and packaged copies
 
-## Source and integrated release
+| Location | Contents |
+| --- | --- |
+| `apps/revenuerescue/` | Complete readable Next.js/TypeScript source, lockfile, fonts, tests and build scripts. The directory name is historical. |
+| `apps/revenuerescue/src/relay/` | Scheduling engine, shared contracts, Bedrock interpretation, persistence, API and real outbound voice handler. |
+| `infra/` | Core CloudFormation template and generator. Connect/Lex resources require separate configuration; see the handoff. |
+| `integrated/relay-source.zip` | Downloadable source snapshot, excluding other generated archives and all local secrets. Check its source manifest. |
+| `integrated/relay-sample-voice-aws.zip` | Current static website plus API/voice Lambda bundles and documentation. Requires existing infrastructure/configuration. |
+| `integrated/relay-release.zip` | Older standalone Next.js baseline. It is retained for reference, not the latest website/voice release. |
+| `docs/` | API, sample schedules, phone controls, pricing and handoff instructions. Earlier dated status notes are historical. |
 
-- `apps/revenuerescue/`: readable Next.js, TypeScript and React source. The directory name is retained from the preserved prototype.
-- `apps/revenuerescue/src/relay/`: canonical contracts, deterministic workflow, persistent server and Bedrock provider.
-- `infra/`: reproducible AWS infrastructure.
-- `integrated/relay-release.zip`: generated runnable server plus website/Lambda distribution with a source-commit manifest and checksums.
-- `docs/API_CONTRACTS.md`, `docs/DECISIONS.md`, `docs/BUILD_STATUS.md`: integration truth and verification status.
-
-The original commercial prototype is preserved in Git history. Main remains event-only; no automatic merge is authorized.
-
-## Local development
+## Run locally
 
 Use Node.js 22.13 or later in the 22.x series.
 
 ```sh
-cd apps/revenuerescue
+git clone --branch feat/relay-sample-schedule https://github.com/KaneXi/c0mpiled-15.git
+cd c0mpiled-15/apps/revenuerescue
 npm ci
-AWS_PROFILE=revenuerescue AWS_REGION=us-east-2 RELAY_AI_ENABLED=true npm run dev
+cp .env.example .env.local
+npm run dev
 ```
 
-Open http://localhost:3008/. Use an authenticated AWS profile with permission to invoke the configured model. No credentials belong in Git. Omitting `RELAY_AI_ENABLED=true` explicitly disables AI; the simulator then requires a manually selected outcome and labels it accordingly.
+Open http://localhost:3008/. Without `RELAY_AI_ENABLED=true` and an authenticated AWS profile, AI is explicitly unavailable and the simulator accepts manually selected outcomes. Real telephone infrastructure and billing are not enabled by installing the source. SQLite persists fictional local data under ignored `.data/`.
 
-SQLite saves local fictional tenant data under `.data/`, which is ignored by Git. Guest sessions last two hours; cloud demo records expire after one day. Refreshing the browser does not reset the workspace. Use **Reset demo** deliberately to start over.
+## Verify and build
 
 ```sh
 npm run typecheck
@@ -44,6 +48,7 @@ npx tsx --test src/components/relay/*.test.ts
 npm run build
 npm run build:web
 npm run build:lambda
+node scripts/build-voice.mjs
 ```
 
-Commit the readable source before running `npm run package:release`. The manifest records the source commit and artifact checksums. See `docs/relay-aws.md` for integration boundaries.
+Never commit the registry token, private `.npmrc`, `.env.local`, presenter code, real test roster, AWS login cache or customer conversation data. The teammate should install the official monetization tooling privately and open their own feature branch from this source branch.

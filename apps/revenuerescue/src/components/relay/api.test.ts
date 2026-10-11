@@ -62,3 +62,28 @@ test("conflicts preserve the server error and never turn into success", async ()
     },
   );
 });
+
+for (const [search, path] of [
+  ["?phone-test=1", "/api/relay/state?phone-test=1"],
+  ["?phone-test=2", "/api/relay/state"],
+]) {
+  test(`browser query ${search} selects only its intended read endpoint`, async () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { location: { search } },
+    });
+    try {
+      globalThis.fetch = async (input, init) => {
+        assert.equal(input, path);
+        assert.equal(init?.method, undefined);
+        assert.equal(init?.body, undefined);
+        return Response.json({ state: { revision: 8 } });
+      };
+      await relayApi.read();
+    } finally {
+      if (previous) Object.defineProperty(globalThis, "window", previous);
+      else Reflect.deleteProperty(globalThis, "window");
+    }
+  });
+}

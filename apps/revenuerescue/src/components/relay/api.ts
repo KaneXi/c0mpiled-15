@@ -38,7 +38,8 @@ async function request(
 export const relayApi = {
   read: (signal?: AbortSignal) =>
     request(
-      new URLSearchParams(window.location.search).get("phone-test") === "1"
+      typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("phone-test") === "1"
         ? "state?phone-test=1"
         : "state",
       { signal },

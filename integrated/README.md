@@ -4,9 +4,14 @@
 
 The target public address is [rescue.kanexi.me](https://rescue.kanexi.me). Deployment is verified; consult [build status](../docs/BUILD_STATUS.md) for verified availability.
 
-## Current Relay package
+## Current source and AWS artifacts
 
-`relay-release.zip` is the new runnable release artifact produced by the packaging command. It contains the standalone Next.js server, static website, Lambda bundle, infrastructure template, and a source-commit manifest. No credentials or private onboarding materials belong in the package.
+- `relay-source.zip`: complete tracked source snapshot excluding this generated-artifact directory, dependency folders and private local configuration. `source-manifest.json` records its source commit and checksum. Start with `docs/TEAM_HANDOFF.md` after extracting it.
+- `relay-sample-voice-aws.zip`: latest website, API Lambda and voice Lambda with documentation. Includes the subscription offer; checkout remains unavailable. `sample-voice-manifest.json` identifies its source and checksum. This archive requires existing AWS infrastructure and private configuration; it is not a standalone local server.
+
+## Older standalone baseline
+
+`relay-release.zip` is an older runnable baseline artifact produced by the packaging command. It contains the standalone Next.js server, static website, Lambda bundle, infrastructure template, and a source-commit manifest. No credentials or private onboarding materials belong in the package.
 
 After extracting a generated package, use Node.js 22.13 or later in the 22.x series and run from its `server/` directory:
 
