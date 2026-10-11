@@ -624,7 +624,7 @@ export function applyCommand(
       } else if (command.decision === "myself") {
         addAssignment(next, shift, next.managerVolunteerId, nowISO, true, true);
         incident.status =
-          coverage(next, shift.id).gap === 0 ? "covered" : "cancelled";
+          coverage(next, shift.id).gap === 0 ? "covered" : "pending";
         stopIncidentCalls(
           next,
           incident.id,
@@ -788,6 +788,13 @@ export function monitor(state: RelayState, nowISO: string): RelayState {
       }
     }
     const risk = coverage(next, shift.id);
+    // Pending plans remain reviewable as coverage and volunteers change; approved lists are never expanded.
+    for (const incident of next.incidents.filter(
+      (row) => row.shiftId === shift.id && row.status === "pending",
+    )) {
+      incident.reason = `${risk.gap} of ${risk.required} required places ${risk.gap === 1 ? "needs" : "need"} reliable coverage.`;
+      incident.candidates = eligibleCandidates(next, shift.id, nowISO);
+    }
     if (
       risk.gap > 0 &&
       !next.incidents.some(
@@ -822,7 +829,9 @@ export function monitor(state: RelayState, nowISO: string): RelayState {
     )) {
       if (
         next.calls.some(
-          (row) => row.incidentId === incident.id && openCall(row),
+          (row) =>
+            row.incidentId === incident.id &&
+            (openCall(row) || row.status === "failed"),
         )
       )
         continue;

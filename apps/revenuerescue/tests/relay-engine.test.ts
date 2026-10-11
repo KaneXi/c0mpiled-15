@@ -658,3 +658,61 @@ describe("manager-approved bounded replacement", () => {
     expect(tick(state)).toBe(state);
   });
 });
+
+describe("recovery edges", () => {
+  it("holds a failed replacement call for explicit retry rather than calling another candidate", () => {
+    const failed = tick(approved());
+    activeCall(failed).status = "failed";
+    expect(monitor(failed, NOW)).toBe(failed);
+    expect(startNextCall(failed, NOW)).toBe(failed);
+    expect(failed.calls).toHaveLength(2);
+    expect(failed.incidents[0].attemptedIds).toEqual(["vol-avery"]);
+  });
+  it("keeps a remaining multi-person gap pending after the manager covers one place", () => {
+    const seed = createRelayState("tenant-one", NOW);
+    seed.shifts[0].required = 2;
+    let state = monitor(respond(tick(publish(seed)), "uncertain"), NOW);
+    expect(state.incidents[0].reason).toContain("2 of 2");
+    state = command(state, {
+      type: "DECIDE_INCIDENT",
+      incidentId: state.incidents[0].id,
+      decision: "myself",
+    });
+    state = monitor(state, NOW);
+    expect(coverage(state, MEALS).gap).toBe(1);
+    expect(state.incidents[0].status).toBe("pending");
+    expect(state.incidents[0].reason).toContain("1 of 2");
+    state = command(state, {
+      type: "DECIDE_INCIDENT",
+      incidentId: state.incidents[0].id,
+      decision: "yes",
+    });
+    state = respond(tick(state), "confirmed");
+    expect(coverage(state, MEALS)).toMatchObject({
+      assigned: 2,
+      confirmed: 2,
+      gap: 0,
+    });
+    expect(state.incidents[0].status).toBe("covered");
+  });
+  it("refreshes only pending candidate proposals while preserving approved scopes", () => {
+    const pending = gap();
+    const blocked = updatePerson(pending, "vol-avery", {
+      callingConsent: false,
+    });
+    expect(
+      monitor(blocked, NOW).incidents[0].candidates.map(
+        (row) => row.volunteerId,
+      ),
+    ).not.toContain("vol-avery");
+    const fixed = approved();
+    const withoutPermission = updatePerson(fixed, "vol-avery", {
+      callingConsent: false,
+    });
+    const afterTick = monitor(withoutPermission, NOW);
+    expect(afterTick.incidents[0].approvedCandidateIds).toEqual(
+      fixed.incidents[0].approvedCandidateIds,
+    );
+    expect(afterTick.calls.at(-1)?.volunteerId).toBe("vol-samira");
+  });
+});
