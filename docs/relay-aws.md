@@ -48,3 +48,7 @@ Earlier fenced-JSON and nullable-clarification failures were repaired and supers
 The owner selected a fast core release. Real calls, persistent customer accounts, official beta billing and cost-anomaly notification remain separate unfinished deliverables; the release must not be represented as completing the full manual.
 
 The EventBridge background worker was separately verified at 20:22 UTC: a future check-in started after its due time with no subsequent browser mutation. Cloud tenant discovery follows DynamoDB pagination so filtered or expired records do not hide later workspaces.
+
+### Public owner phone-test status
+
+`GET /api/relay/state?phone-test=1` returns the test selected by the Lambda environment variable `RELAY_PUBLIC_TEST_TENANT`. This optional, temporary setting points to an operator-created tenant; preserve it when redeploying while the test is active. The tenant expires through the existing 24-hour policy. With no configured test, the endpoint returns 404. Full phone digits are masked server-side. Public status grants no session or dialing permission, and all mutations to this test tenant are rejected. Its progress is read from persisted facts every three seconds, not a scripted animation. The regular guest workspace and its simulated call workflow are unchanged.

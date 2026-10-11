@@ -72,6 +72,32 @@ export async function handleRelayRequest(request: Request): Promise<Response> {
         "Set-Cookie": `${cookieName}=${fresh.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=7200${secure ? "; Secure" : ""}`,
       });
     }
+    if (
+      url.pathname === "/api/relay/state" &&
+      request.method === "GET" &&
+      url.searchParams.get("phone-test") === "1"
+    ) {
+      const tenant = process.env.RELAY_PUBLIC_TEST_TENANT;
+      if (!tenant)
+        throw new ServiceError(
+          "The public phone test is not available yet.",
+          404,
+        );
+      const view = await getService().view(tenant);
+      if (!view.state.phoneTest)
+        throw new ServiceError("The public phone test is not available.", 404);
+      return json({
+        ...view,
+        state: {
+          ...view.state,
+          tenantId: "public-phone-test",
+          volunteers: view.state.volunteers.map((person) => ({
+            ...person,
+            phone: "••••" + person.phone.slice(-4),
+          })),
+        },
+      });
+    }
     if (!session)
       throw new ServiceError(
         "Your guest session has ended. Reload to start another demo.",

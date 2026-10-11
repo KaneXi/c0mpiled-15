@@ -167,7 +167,14 @@ export interface Activity {
   nextAction?: string;
   transport?: "simulated" | "amazon-connect";
 }
+export interface PhoneTest {
+  stage: "waiting" | "ready" | "calling" | "completed" | "failed" | "stopped";
+  detail: string;
+  updatedAt: string;
+  events: { at: string; text: string }[];
+}
 export interface RelayState {
+  phoneTest?: PhoneTest;
   schemaVersion: 1;
   tenantId: string;
   revision: number;

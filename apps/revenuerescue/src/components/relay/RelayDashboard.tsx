@@ -32,6 +32,7 @@ import type {
 import { RelayApiError, relayApi } from "./api";
 import { ShiftEditor, VolunteerEditor, type SendCommand } from "./Editors";
 import { browserZone, dateTime, label } from "./format";
+import { PhoneTestView } from "./PhoneTestView";
 import { RelayTour } from "./RelayTour";
 import { RELAY_TOUR_KEY, type RelayTourTab } from "./tour-flow";
 import s from "./Relay.module.css";
@@ -761,6 +762,8 @@ export default function RelayDashboard() {
     );
 
   const state = view.state;
+  if (state.phoneTest)
+    return <PhoneTestView state={state} connection={connection} />;
   const openIncidents = state.incidents.filter(
     (i) => i.status === "pending" || i.status === "approved",
   );
@@ -891,6 +894,11 @@ export default function RelayDashboard() {
           <span>{openIncidents.length} open plans</span>
           <span>{currentCalls.length} active / queued calls</span>
         </div>
+        <p>
+          <a className={s.textButton} href="/?phone-test=1">
+            View the live phone test <ArrowRight size={16} />
+          </a>
+        </p>
         {welcome && (
           <section
             className={s.tourWelcome}

@@ -52,6 +52,12 @@ export class RelayService {
     tenantId: string,
     envelope: CommandEnvelope,
   ): Promise<RelayView> {
+    if ((await this.store.read(tenantId)).phoneTest)
+      throw new ServiceError(
+        "This phone test is read-only. Calling is controlled separately.",
+        403,
+        "FORBIDDEN",
+      );
     const { command, expectedRevision, requestId } = envelope;
     const receipt = {
       id: requestId,
@@ -214,6 +220,7 @@ export class RelayService {
   }
   async tick(tenantId: string) {
     await this.store.mutate(tenantId, undefined, undefined, (state) => {
+      if (state.phoneTest) return state;
       const now = new Date().toISOString();
       let next = state;
       const stalled = state.calls.some(

@@ -2,6 +2,7 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { getStore } from "../src/relay/server/store";
 import { handleRelayRequest } from "../src/relay/server/http";
 const dir = mkdtempSync(join(tmpdir(), "relay-http-"));
 beforeAll(() => {
@@ -96,5 +97,59 @@ describe("Relay API authorization boundary", () => {
     ).json();
     expect(a.state).toEqual(b.state);
     expect(a.state.calls).toHaveLength(0);
+  });
+});
+
+describe("Public phone test", () => {
+  it("allows only the designated test and masks the phone number", async () => {
+    const fresh = await getStore().createSession();
+    await getStore().mutate(fresh.session.tenantId, 0, undefined, (state) => ({
+      ...state,
+      phoneTest: {
+        stage: "waiting",
+        detail: "No call placed",
+        updatedAt: new Date().toISOString(),
+        events: [],
+      },
+    }));
+    process.env.RELAY_PUBLIC_TEST_TENANT = fresh.session.tenantId;
+    const response = await handleRelayRequest(request("state?phone-test=1"));
+    expect(response.status).toBe(200);
+    const view = await response.json();
+    expect(view.state.tenantId).toBe("public-phone-test");
+    expect(view.state.volunteers[0].phone).toMatch(/^••••[0-9]{4}$/);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(
+      (
+        await handleRelayRequest(
+          request("command", "POST", {
+            requestId: crypto.randomUUID(),
+            expectedRevision: 0,
+            command: { type: "RESET_DEMO" },
+          }),
+        )
+      ).status,
+    ).toBe(401);
+    const cookie = "relay_guest=" + fresh.token;
+    expect(
+      (
+        await handleRelayRequest(
+          request(
+            "command",
+            "POST",
+            {
+              requestId: crypto.randomUUID(),
+              expectedRevision: view.state.revision,
+              command: { type: "RESET_DEMO" },
+            },
+            cookie,
+          ),
+        )
+      ).status,
+    ).toBe(403);
+    delete process.env.RELAY_PUBLIC_TEST_TENANT;
+    expect(
+      (await handleRelayRequest(request("state?phone-test=1"))).status,
+    ).toBe(404);
   });
 });

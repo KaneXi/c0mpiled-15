@@ -36,7 +36,13 @@ async function request(
 }
 
 export const relayApi = {
-  read: (signal?: AbortSignal) => request("state", { signal }),
+  read: (signal?: AbortSignal) =>
+    request(
+      new URLSearchParams(window.location.search).get("phone-test") === "1"
+        ? "state?phone-test=1"
+        : "state",
+      { signal },
+    ),
   session: (signal?: AbortSignal) =>
     request("session", { method: "POST", body: "{}", signal }),
   command: (command: RelayCommand, expectedRevision: number) => {

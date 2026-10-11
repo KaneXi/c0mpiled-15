@@ -986,3 +986,57 @@
     scroll-behavior: auto !important;
   }
 }
+
+.phoneTest {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  color: #292b24;
+}
+.phoneTest > .header {
+  margin-top: 40px;
+}
+.phoneTestSection {
+  border-top: 1px solid #d8d9cf;
+  padding: 28px 0;
+}
+.phoneTestSection h2 {
+  margin-bottom: 20px;
+}
+.phoneTestFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.phoneTestFacts dt {
+  font-size: 14px;
+  color: #595c51;
+}
+.phoneTestFacts dd {
+  margin: 6px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.phoneTestEvents {
+  padding-left: 24px;
+  margin: 24px 0;
+}
+.phoneTestEvents li {
+  padding: 10px 0 10px 8px;
+}
+.phoneTestEvents time {
+  display: block;
+  font-size: 13px;
+  color: #595c51;
+  margin-bottom: 5px;
+}
+@media (max-width: 560px) {
+  .phoneTestFacts {
+    grid-template-columns: 1fr;
+  }
+  .phoneTest {
+    padding: 24px 20px;
+  }
+}
