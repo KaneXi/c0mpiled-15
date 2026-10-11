@@ -1,9 +1,4 @@
 import { createHash } from "node:crypto";
-import {
-  ConnectClient,
-  ReleasePhoneNumberCommand,
-  StopContactCommand,
-} from "@aws-sdk/client-connect";
 import { DynamoRelayStore } from "../server/store";
 import { createAgentProvider } from "../providers/agent";
 import { completeCall } from "../engine";
@@ -28,55 +23,18 @@ export async function handler(event: LexEvent) {
     return { ok: true };
   }
   if (event.source === "relay.voice.close") {
-    const connect = new ConnectClient({ region: "us-east-1", maxAttempts: 2 });
-    const before = await db.read(tenant);
     await db.mutate(tenant, undefined, undefined, (state) => ({
       ...state,
       paused: true,
-    }));
-    for (const call of before.calls.filter(
-      (call) => call.contactId && !call.disconnectedAt,
-    )) {
-      try {
-        await connect.send(
-          new StopContactCommand({
-            InstanceId: process.env.VOICE_CONNECT_INSTANCE!,
-            ContactId: call.contactId!,
-          }),
-        );
-      } catch (error) {
-        if (
-          !(error instanceof Error) ||
-          !["ContactNotFoundException", "InvalidRequestException"].includes(
-            error.name,
-          )
-        )
-          throw error;
-      }
-    }
-    try {
-      await connect.send(
-        new ReleasePhoneNumberCommand({
-          PhoneNumberId: process.env.VOICE_PHONE_NUMBER_ID!,
-        }),
-      );
-    } catch (e) {
-      if (!(e instanceof Error) || e.name !== "ResourceNotFoundException")
-        throw e;
-    }
-    await db.mutate(tenant, undefined, undefined, (s) => ({
-      ...s,
-      paused: true,
       phoneTest: {
-        ...s.phoneTest!,
-        stage: s.phoneTest?.stage === "completed" ? "completed" : "stopped",
-        callerNumber: undefined,
-        closesAt: new Date().toISOString(),
+        ...state.phoneTest!,
+        stage: "stopped",
         detail:
-          "The phone test has ended and its caller number was released. Check the saved call results and schedule below.",
+          "The service window ended. AWS is stopping any active call and releasing its caller number.",
         updatedAt: new Date().toISOString(),
       },
     }));
+    await tickOutbound();
     return { closed: true };
   }
   if (

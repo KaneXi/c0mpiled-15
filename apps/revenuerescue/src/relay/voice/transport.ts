@@ -9,13 +9,31 @@ import { DynamoRelayStore } from "../server/store";
 import { completeCall } from "../engine";
 import { advanceOutbound } from "./workflow";
 import { openingPrompt } from "./prompts";
+import { prepareCaller, callerReady, releaseCaller } from "./number";
 const connect = new ConnectClient({ region: "us-east-1", maxAttempts: 1 });
 export async function tickOutbound() {
   const tenant = process.env.RELAY_PUBLIC_TEST_TENANT!;
   const db = new DynamoRelayStore();
   let state = await db.read(tenant);
-  if (state.phoneTest?.mode !== "outbound" || !state.phoneTest.startedAt)
+  if (
+    state.phoneTest?.mode !== "outbound" ||
+    (!state.phoneTest.startedAt && !state.phoneTest.scheduledFor)
+  )
     return;
+  if (
+    Date.now() >= Date.parse(state.phoneTest.closesAt || "1970-01-01") &&
+    !state.paused
+  )
+    state = await db.mutate(tenant, undefined, undefined, (current) => ({
+      ...current,
+      paused: true,
+      phoneTest: {
+        ...current.phoneTest!,
+        stage: "stopped",
+        detail: "The authorized test window ended. Automatic calling stopped.",
+        updatedAt: new Date().toISOString(),
+      },
+    }));
   const instance = process.env.VOICE_CONNECT_INSTANCE!;
   // Finish observing the previous contact before permitting the next telephone call.
   for (const call of state.calls.filter(
@@ -71,10 +89,41 @@ export async function tickOutbound() {
       return next;
     });
   }
+  // Do not provision a fresh caller after a missed start or after cancellation.
+  if (
+    !state.paused &&
+    state.phoneTest?.scheduledFor &&
+    !state.calls.some((c) => c.startedAt) &&
+    Date.now() > Date.parse(state.phoneTest.scheduledFor) + 120_000
+  ) {
+    state = await db.mutate(tenant, undefined, undefined, (current) =>
+      advanceOutbound(current, new Date().toISOString()),
+    );
+  }
+  if (state.paused) {
+    if (state.phoneTest?.allocationNumber && !state.phoneTest.phoneNumberId) {
+      const recovered = await prepareCaller(connect, db, tenant, state);
+      if (!recovered) return;
+      state = recovered;
+    }
+    await releaseCaller(connect, db, tenant, state);
+    return;
+  }
+  const prepared = await prepareCaller(connect, db, tenant, state);
+  if (!prepared) return;
+  state = prepared;
+  if (state.paused) {
+    await releaseCaller(connect, db, tenant, state);
+    return;
+  }
+  if (!(await callerReady(connect, state))) return;
   state = await db.mutate(tenant, undefined, undefined, (current) =>
     advanceOutbound(current, new Date().toISOString()),
   );
-  if (state.paused) return;
+  if (state.paused) {
+    await releaseCaller(connect, db, tenant, state);
+    return;
+  }
   const call = state.calls.find(
     (c) =>
       c.status === "in_progress" &&
@@ -111,7 +160,7 @@ export async function tickOutbound() {
       new StartOutboundVoiceContactCommand({
         InstanceId: instance,
         ContactFlowId: process.env.VOICE_CONNECT_FLOW!,
-        SourcePhoneNumber: process.env.VOICE_CALLER_NUMBER!,
+        SourcePhoneNumber: state.phoneTest!.callerNumber!,
         DestinationPhoneNumber: person.phone,
         ClientToken: token,
         TrafficType: "GENERAL",

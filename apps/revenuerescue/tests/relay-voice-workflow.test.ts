@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRelayState } from "../src/relay/seed";
+import { schedulePhoneTest } from "../src/relay/voice/control";
 import { advanceOutbound } from "../src/relay/voice/workflow";
 import { applyCommand, completeCall, coverage } from "../src/relay/engine";
 import type { CallOutcome, RelayState } from "../src/relay/contracts";
@@ -19,6 +20,7 @@ function initial() {
   );
   state.phoneTest = {
     mode: "outbound",
+    runId: "fictional-run",
     startedAt: now,
     closesAt: "2026-10-11T22:00:00.000Z",
     stage: "ready",
@@ -48,6 +50,46 @@ function finish(state: RelayState, outcome: CallOutcome) {
   return next;
 }
 describe("bounded real-call orchestration", () => {
+  it("waits until the scheduled instant and starts exactly one original inquiry", () => {
+    let state = initial();
+    delete state.phoneTest!.startedAt;
+    state.phoneTest!.callerNumber = "+12025550109";
+    state.paused = true;
+    state = schedulePhoneTest(state, "2026-10-11T21:02:00.000Z", now);
+    expect(state.phoneTest!.stage).toBe("waiting");
+    expect(
+      advanceOutbound(state, "2026-10-11T21:01:59.999Z").calls,
+    ).toHaveLength(0);
+    state = advanceOutbound(state, "2026-10-11T21:02:00.000Z");
+    expect(
+      state.calls.filter((call) => call.status === "in_progress"),
+    ).toHaveLength(1);
+    expect(
+      advanceOutbound(state, "2026-10-11T21:02:10.000Z").calls,
+    ).toHaveLength(1);
+  });
+  it("rejects past times, expiry overflow and re-arming, and honors cancellation", () => {
+    const state = initial();
+    delete state.phoneTest!.startedAt;
+    state.phoneTest!.callerNumber = "+12025550109";
+    expect(() => schedulePhoneTest(state, now, now)).toThrow();
+    expect(() =>
+      schedulePhoneTest(state, "2026-10-11T21:58:00.000Z", now),
+    ).toThrow();
+    const scheduled = schedulePhoneTest(state, "2026-10-11T21:02:00.000Z", now);
+    expect(() =>
+      schedulePhoneTest(scheduled, "2026-10-11T21:03:00.000Z", now),
+    ).toThrow();
+    scheduled.paused = true;
+    expect(
+      advanceOutbound(scheduled, "2026-10-11T21:02:00.000Z").calls,
+    ).toHaveLength(0);
+    scheduled.paused = false;
+    const stale = advanceOutbound(scheduled, "2026-10-11T21:04:01.000Z");
+    expect(stale.paused).toBe(true);
+    expect(stale.calls).toHaveLength(0);
+  });
+
   it("waits for disconnection, then calls the replacement only after explicit refusal", () => {
     let state = advanceOutbound(initial(), now);
     expect(state.calls[0].transport).toBe("amazon-connect");

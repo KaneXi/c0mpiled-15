@@ -172,6 +172,21 @@ export interface Activity {
 }
 export interface PhoneTest {
   mode?: "outbound";
+  scheduledFor?: string;
+  armedAt?: string;
+  runsScheduled?: number;
+  originalVolunteerId?: string;
+  replacementVolunteerId?: string;
+  runId?: string;
+  phoneNumberId?: string;
+  allocationNumber?: string;
+  allocationToken?: string;
+  history?: {
+    endedAt: string;
+    shift: Shift;
+    calls: Call[];
+    assignmentNames: string[];
+  }[];
   startedAt?: string;
   callerNumber?: string;
   closesAt?: string;

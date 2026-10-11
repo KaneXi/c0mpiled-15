@@ -1040,3 +1040,21 @@
     padding: 24px 20px;
   }
 }
+
+.savedPhonePlan {
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid #d8d9cf;
+  border-radius: 12px;
+  background: #f6f7ee;
+}
+.phoneTestSection > label {
+  display: block;
+  margin: 16px 0;
+}
+.phoneTestSection > h3 {
+  margin: 28px 0 16px;
+}
+.phoneTestSection > .formGrid {
+  margin: 20px 0;
+}

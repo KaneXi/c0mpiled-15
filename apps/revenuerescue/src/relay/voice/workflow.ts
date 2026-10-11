@@ -3,14 +3,49 @@ import type { RelayState } from "../contracts";
 
 /** The website authorizes one bounded replacement sequence when starting this demo. */
 export function advanceOutbound(state: RelayState, now: string): RelayState {
-  if (
-    state.phoneTest?.mode !== "outbound" ||
-    !state.phoneTest.startedAt ||
-    state.paused
-  )
-    return state;
+  if (state.phoneTest?.mode !== "outbound" || state.paused) return state;
   if (Date.parse(state.phoneTest.closesAt || "1970-01-01") <= Date.parse(now))
     return { ...state, paused: true };
+  if (
+    state.phoneTest.scheduledFor &&
+    !state.calls.some((call) => call.startedAt) &&
+    Date.parse(now) - Date.parse(state.phoneTest.scheduledFor) > 120_000
+  )
+    return {
+      ...state,
+      paused: true,
+      phoneTest: {
+        ...state.phoneTest,
+        stage: "stopped",
+        detail: "The scheduled start window was missed. No calls were placed.",
+        updatedAt: now,
+      },
+    };
+  if (!state.phoneTest.startedAt) {
+    const due = Date.parse(state.phoneTest.scheduledFor || "");
+    if (!Number.isFinite(due) || Date.parse(now) < due) return state;
+    if (Date.parse(now) - due > 120_000)
+      return {
+        ...state,
+        paused: true,
+        phoneTest: {
+          ...state.phoneTest,
+          stage: "stopped",
+          detail:
+            "The scheduled start window was missed. No calls were placed.",
+          updatedAt: now,
+        },
+      };
+    state = {
+      ...state,
+      phoneTest: {
+        ...state.phoneTest,
+        startedAt: now,
+        detail: "The scheduled inquiry time has arrived.",
+        updatedAt: now,
+      },
+    };
+  }
   let next = monitor(state, now);
   for (const incident of next.incidents.filter(
     (i) => i.status === "pending" && i.candidates.length,

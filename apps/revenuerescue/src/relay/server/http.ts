@@ -92,7 +92,21 @@ export async function handleRelayRequest(request: Request): Promise<Response> {
         state: {
           ...view.state,
           tenantId: "public-phone-test",
-          phoneTest: { ...view.state.phoneTest, processedTurns: undefined },
+          phoneTest: {
+            ...view.state.phoneTest,
+            processedTurns: undefined,
+            allocationNumber: undefined,
+            allocationToken: undefined,
+            phoneNumberId: undefined,
+            history: view.state.phoneTest.history?.map((run) => ({
+              ...run,
+              calls: run.calls.map((call) => ({
+                ...call,
+                transcript: "",
+                contactId: undefined,
+              })),
+            })),
+          },
           calls: view.state.calls.map((call) => ({
             ...call,
             transcript: "",
