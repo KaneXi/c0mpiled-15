@@ -1,8 +1,8 @@
 {
   "product": "Relay",
-  "sourceCommit": "3bdfe0fdc92bdccbeabbe8a7f85aebe6a05dafb5",
+  "sourceCommit": "25ed2bf970074ecf8d424bf906994bcc2b38bfa8",
   "node": "v22.23.1",
   "lockfileSha256": "a7e8379f2c3abcfa9b42f7c28ee4f1f4507df6229d409dee934dfa2cb84ee06c",
-  "lambdaSha256": "5dc4beaeffdec70a0f238734c57d70840a7590b2b3a22dd15f2cc1749816f381",
+  "lambdaSha256": "a91506bfc364ef092e4cddd49157be8424381035abf6b92e7516f5a0e6d53572",
   "scope": "Persistent fictional volunteer workflow. Real Bedrock when configured; telephone transport simulated. No production payments."
 }
