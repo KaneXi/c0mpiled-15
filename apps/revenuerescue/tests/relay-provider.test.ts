@@ -67,6 +67,34 @@ const input = (): Parameters<AgentProvider["interpret"]>[0] => ({
 const signal = () => new AbortController().signal;
 
 describe("Relay Bedrock semantic provider", () => {
+  it("normalizes an explicit null clarification without changing a clear decline", async () => {
+    const answer = {
+      ...result,
+      outcome: "declined",
+      summary: "The volunteer declined this replacement shift.",
+      clarification: null,
+    };
+    const provider = createAgentProvider({
+      enabled: true,
+      transport: vi.fn<BedrockTransport>().mockResolvedValue(response(answer)),
+    });
+    expect(
+      (await provider.interpret(input(), signal())).interpretation,
+    ).toEqual({ ...answer, clarification: "" });
+  });
+  it("still rejects missing or incorrectly typed clarification fields", async () => {
+    for (const clarification of [undefined, 42, {}]) {
+      const provider = createAgentProvider({
+        enabled: true,
+        transport: vi
+          .fn<BedrockTransport>()
+          .mockResolvedValue(response({ ...result, clarification })),
+      });
+      await expect(provider.interpret(input(), signal())).rejects.toMatchObject(
+        { code: "AI_UNAVAILABLE" },
+      );
+    }
+  });
   it("accepts only a complete single JSON fence, not surrounding prose", async () => {
     for (const language of ["json", ""]) {
       const answer = response(result);

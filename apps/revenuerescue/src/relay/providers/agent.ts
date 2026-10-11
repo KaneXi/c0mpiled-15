@@ -38,17 +38,25 @@ Return ONLY a JSON object with exactly: outcome (confirmed|declined|uncertain|la
 Use the supplied conversation time and shift's dated, timezone-aware times to interpret relative times. Do not invent an alternative date. confirmed means an explicit commitment covering the entire assigned/requested shift; declined means an explicit inability/refusal to cover it; late and partial must preserve stated times. A question is not acceptance. A request to stop calls is opt_out. Do not infer no_answer from spoken text; only documented call-transport evidence can establish it.
 If confidence is below 0.8, use uncertain and ask one concise clarification question. For ambiguous commitments, use uncertain regardless of confidence. For late, provide availableFrom when known; for partial, provide both stated bounds when known; use null and ask if missing. A normal complete confirmation needs no invented time window. Summary must describe what the volunteer said, never claim that Relay already changed the schedule. No markdown, extra keys, secrets, or URLs.`;
 
+const modelInterpretationSchema = interpretationSchema.extend({
+  clarification: z.string().max(300).nullable(),
+});
+
 function fail(message: string): never {
   throw new AgentProviderUnavailable(message);
 }
 
 function checkedInterpretation(value: unknown): Interpretation {
-  const parsed = interpretationSchema.safeParse(value);
+  const parsed = modelInterpretationSchema.safeParse(value);
   if (!parsed.success)
     return fail(
       "AWS returned an invalid interpretation. No call outcome was applied.",
     );
-  const answer = parsed.data;
+  // The model may express "no clarification needed" as null; the shared API uses an empty string.
+  const answer = {
+    ...parsed.data,
+    clarification: parsed.data.clarification ?? "",
+  };
   if (
     answer.availableFrom &&
     answer.availableUntil &&
