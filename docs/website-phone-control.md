@@ -73,10 +73,10 @@ A separately verified full-shift acceptance uses the authoritative saved shift r
 
 The original dashboard layout, Schedule / Volunteers / Calls navigation, schedule cards and guided tour are preserved. Create shift and Manage calls open the real task controls within the dashboard. Manager messages and the replacement timeline are embedded below the schedule.
 
-## Renewed owner-authorized allowance
+## Owner-authorized unlimited recording runs
 
-The owner requested substantially more tests. The configured total is now 50 sequences, retaining all consumed runs and history. Each sequence still allows at most two calls to the existing consented, allowlisted participants and requires fresh website authorization. The existing service end time remains unchanged. Deployment never starts a sequence.
+The owner requested removal of the live run and speech-analysis caps for recording. Set `VOICE_TEST_RUN_LIMIT=unlimited` on the core API and `VOICE_ANALYSIS_LIMIT=unlimited` on the API and voice worker. The public state represents unlimited runs as `runLimit: null`; the website displays "No test-run limit." Historical run counts and AI usage counters remain intact.
 
-The exact live workspace may also receive a bounded `VOICE_ANALYSIS_LIMIT` of up to 500 reservations so speech interpretation and independent verification can serve the enlarged calling allowance. Its existing usage counters are retained. Guest workspace limits remain 20 analyses per tenant and 100 per day; the overall lifetime limit remains 500. This is a usage allowance, not prepaid AWS credit or a billing cap.
+Unlimited analysis applies only to the exact privately configured live tenant. Guest tenant limits remain unchanged. This removes application usage caps, not AWS account limits or charges. Each sequence still calls only the existing two consented, allowlisted participants, requires fresh manager authorization and follows the existing service window. Deployment does not create tasks, arm runs, or start calls.
 
-Completed runs no longer lock the authorization checkbox. Before starting another sequence, save a fresh task, then explicitly authorize calls. Each disabled start button shows the required next action. Editing participants, shift hours or inquiry time clears the previous checkbox selection.
+Completed runs no longer lock the authorization checkbox. Save a fresh task before starting another sequence, then explicitly authorize calls. Disabled start buttons explain the required next action. Editing participants, shift hours or inquiry time clears previous consent. The original dashboard UI is preserved.

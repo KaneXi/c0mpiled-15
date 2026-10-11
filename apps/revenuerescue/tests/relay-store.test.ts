@@ -123,6 +123,37 @@ describe("durable manager workspace", () => {
 });
 
 describe("cloud worker discovery", () => {
+  it("removes live analysis conditions only when explicitly configured as unlimited", async () => {
+    vi.stubEnv("RELAY_PUBLIC_TEST_TENANT", "live-tenant");
+    vi.stubEnv("VOICE_ANALYSIS_LIMIT", "unlimited");
+    const send = vi
+      .spyOn(DynamoDBDocumentClient.prototype, "send")
+      .mockResolvedValue({} as never);
+    const store = new DynamoRelayStore("test-table");
+    await store.reserveAnalysis("live-tenant");
+    await store.reserveAnalysis("guest-tenant");
+    const updates = (index: number) =>
+      (
+        send.mock.calls[index][0].input as {
+          TransactItems: {
+            Update: {
+              ConditionExpression?: string;
+              ExpressionAttributeValues: Record<string, number>;
+            };
+          }[];
+        }
+      ).TransactItems.map((item) => item.Update);
+    expect(
+      updates(0).every(
+        (update) =>
+          !update.ConditionExpression &&
+          !(":limit" in update.ExpressionAttributeValues),
+      ),
+    ).toBe(true);
+    expect(updates(1).every((update) => !!update.ConditionExpression)).toBe(
+      true,
+    );
+  });
   it("uses renewed budgets only for the exact live tenant in DynamoDB", async () => {
     vi.stubEnv("RELAY_PUBLIC_TEST_TENANT", "live-tenant");
     vi.stubEnv("VOICE_ANALYSIS_LIMIT", "500");

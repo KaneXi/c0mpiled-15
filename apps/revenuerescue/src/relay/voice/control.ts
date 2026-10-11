@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { RelayState } from "../contracts";
 
 export function phoneTestRunLimit() {
+  if (process.env.VOICE_TEST_RUN_LIMIT === "unlimited") return null;
   const value = Number(process.env.VOICE_TEST_RUN_LIMIT || "3");
   return Number.isInteger(value) && value >= 3 && value <= 50 ? value : 3;
 }
@@ -30,7 +31,8 @@ export function schedulePhoneTest(
       "This single-run test has already been scheduled or started.",
       409,
     );
-  if ((test.runsScheduled || 0) >= phoneTestRunLimit())
+  const limit = phoneTestRunLimit();
+  if (limit !== null && (test.runsScheduled || 0) >= limit)
     throw new ServiceError(
       "This demo has reached its authorized test-run limit.",
       409,
@@ -104,10 +106,11 @@ export function preparePhoneTest(
       "Wait until the previous test has stopped and its caller number has been released.",
       409,
     );
+  const limit = phoneTestRunLimit();
   if (
+    limit !== null &&
     (old.runsScheduled ??
-      (old.history?.length || 0) + (old.startedAt ? 1 : 0)) >=
-    phoneTestRunLimit()
+      (old.history?.length || 0) + (old.startedAt ? 1 : 0)) >= limit
   )
     throw new ServiceError(
       "This demo has reached its authorized test-run limit. Calling is disabled until the owner renews the test allowance.",

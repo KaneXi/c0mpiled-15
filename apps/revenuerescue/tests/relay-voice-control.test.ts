@@ -31,6 +31,18 @@ function fixture() {
 }
 afterEach(() => vi.unstubAllEnvs());
 describe("website-owned phone planning", () => {
+  it("supports unlimited owner-authorized runs without resetting usage or starting a call", () => {
+    vi.stubEnv("VOICE_TEST_RUN_LIMIT", "unlimited");
+    const { s, setup } = fixture();
+    s.phoneTest!.runsScheduled = 100;
+    const ready = preparePhoneTest(s, setup, now);
+    expect(ready.phoneTest?.runLimit).toBeNull();
+    expect(ready.phoneTest?.runsScheduled).toBe(100);
+    expect(ready.paused).toBe(true);
+    expect(
+      schedulePhoneTest(ready, undefined, now, true).phoneTest?.runsScheduled,
+    ).toBe(101);
+  });
   it("starts immediately with the saved hours and rejects duplicate or expired starts", () => {
     const { s, setup } = fixture();
     const ready = preparePhoneTest(s, setup, now);

@@ -105,10 +105,10 @@ export function PhoneTestView({
       timeZoneName: "short",
     }).format(new Date(value));
   const notifications = managerMessages(state);
-  const remainingRuns = Math.max(
-    0,
-    (test.runLimit || 3) - (test.runsScheduled || 0),
-  );
+  const remainingRuns =
+    test.runLimit === null
+      ? null
+      : Math.max(0, (test.runLimit ?? 3) - (test.runsScheduled || 0));
   const startBlocker = inquiryStartBlocker({
     busy,
     paused: state.paused,
@@ -393,8 +393,9 @@ export function PhoneTestView({
               </p>
               <p>{availabilityQuestion(shift, savedOriginal)}</p>
               <p className={s.hint}>
-                {remainingRuns}{" "}
-                calling sequences remain in the authorized allowance.
+                {remainingRuns === null
+                  ? "No test-run limit."
+                  : `${remainingRuns} calling sequences remain in the authorized allowance.`}
               </p>
             </div>
           )}

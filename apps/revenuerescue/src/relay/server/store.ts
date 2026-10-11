@@ -53,6 +53,11 @@ export interface RelayStore {
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 function analysisBudget(tenantId: string) {
+  if (
+    tenantId === process.env.RELAY_PUBLIC_TEST_TENANT &&
+    process.env.VOICE_ANALYSIS_LIMIT === "unlimited"
+  )
+    return { tenant: null, day: null, lifetime: null };
   const requested = Number(process.env.VOICE_ANALYSIS_LIMIT || "20");
   const tenant =
     tenantId === process.env.RELAY_PUBLIC_TEST_TENANT &&
@@ -193,11 +198,11 @@ export class SqliteRelayStore implements RelayStore {
       .slice(0, 100)
       .map((r) => r.state.tenantId);
   }
-  private increment(key: string, limit: number) {
+  private increment(key: string, limit: number | null) {
     const row = this.db
       .prepare("SELECT amount FROM relay_usage WHERE key=?")
       .get(key) as { amount: number } | undefined;
-    if ((row?.amount ?? 0) >= limit)
+    if (limit !== null && (row?.amount ?? 0) >= limit)
       throw new ServiceError(
         "The demo analysis limit has been reached. No paid call was started.",
         429,
@@ -387,9 +392,14 @@ export class DynamoRelayStore implements RelayStore {
               TableName: this.table,
               Key: { PK: `RELAY#AI#${key}` },
               UpdateExpression: "ADD #n :one",
-              ConditionExpression: "attribute_not_exists(#n) OR #n < :limit",
               ExpressionAttributeNames: { "#n": "amount" },
-              ExpressionAttributeValues: { ":one": 1, ":limit": limit },
+              ...(limit === null
+                ? { ExpressionAttributeValues: { ":one": 1 } }
+                : {
+                    ConditionExpression:
+                      "attribute_not_exists(#n) OR #n < :limit",
+                    ExpressionAttributeValues: { ":one": 1, ":limit": limit },
+                  }),
             },
           })),
         }),

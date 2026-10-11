@@ -29,6 +29,14 @@ test("a newly saved plan still requires explicit authorization", () => {
   assert.equal(inquiryStartBlocker(ready), "");
 });
 
+test("unlimited allowance permits an authorized fresh task", () => {
+  assert.equal(inquiryStartBlocker({ ...ready, remainingRuns: null }), "");
+  assert.match(
+    inquiryStartBlocker({ ...ready, remainingRuns: null, authorized: false }),
+    /authorization box/,
+  );
+});
+
 test("polling must display the saved plan before a new inquiry can start", () => {
   assert.match(
     inquiryStartBlocker({ ...ready, waitingForSave: true }),

@@ -175,7 +175,7 @@ export interface PhoneTest {
   scheduledFor?: string;
   armedAt?: string;
   runsScheduled?: number;
-  runLimit?: number;
+  runLimit?: number | null;
   originalVolunteerId?: string;
   replacementVolunteerId?: string;
   runId?: string;
