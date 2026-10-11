@@ -143,6 +143,12 @@ describe("Relay Bedrock semantic provider", () => {
     expect(command.inferenceConfig?.maxTokens).toBe(800);
     const prompt = command.messages![0].content![0].text!;
     expect(JSON.parse(prompt).conversation).toBe(request.transcript);
+    expect(JSON.parse(prompt).shift.localStart).toBe(
+      "2026-10-12T13:00:00.000-04:00",
+    );
+    expect(JSON.parse(prompt).shift.localEnd).toBe(
+      "2026-10-12T15:00:00.000-04:00",
+    );
     expect(prompt).not.toContain(request.volunteer.phone);
     expect(prompt).not.toContain(request.volunteer.name);
     expect(JSON.stringify(request)).toBe(original);

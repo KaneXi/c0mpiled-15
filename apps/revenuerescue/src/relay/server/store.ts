@@ -217,7 +217,8 @@ export class SqliteRelayStore implements RelayStore {
 export class DynamoRelayStore implements RelayStore {
   private db = DynamoDBDocumentClient.from(
     new DynamoDBClient({
-      region: process.env.AWS_REGION ?? "us-east-2",
+      region:
+        process.env.RELAY_DATA_REGION ?? process.env.AWS_REGION ?? "us-east-2",
       maxAttempts: 1,
     }),
     { marshallOptions: { removeUndefinedValues: true } },

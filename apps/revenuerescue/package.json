@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "3.1149.0",
+    "@aws-sdk/client-connect": "3.1149.0",
     "@aws-sdk/client-dynamodb": "3.1149.0",
     "@aws-sdk/lib-dynamodb": "3.1149.0",
     "lucide-react": "1.55.0",

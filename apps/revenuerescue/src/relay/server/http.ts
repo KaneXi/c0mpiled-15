@@ -1,3 +1,4 @@
+import { controlPhoneTest } from "../voice/control";
 import { commandEnvelopeSchema } from "../contracts";
 import { getStore, ServiceError } from "./store";
 import { getService } from "./service";
@@ -91,12 +92,26 @@ export async function handleRelayRequest(request: Request): Promise<Response> {
         state: {
           ...view.state,
           tenantId: "public-phone-test",
+          phoneTest: { ...view.state.phoneTest, processedTurns: undefined },
+          calls: view.state.calls.map((call) => ({
+            ...call,
+            transcript: "",
+            contactId: undefined,
+          })),
           volunteers: view.state.volunteers.map((person) => ({
             ...person,
             phone: "••••" + person.phone.slice(-4),
           })),
         },
       });
+    }
+    if (url.pathname === "/api/relay/command" && request.method === "POST") {
+      const input = await request
+        .clone()
+        .json()
+        .catch(() => null);
+      if (input && typeof input === "object" && "phoneTestAction" in input)
+        return json(await controlPhoneTest(await body(request)));
     }
     if (!session)
       throw new ServiceError(

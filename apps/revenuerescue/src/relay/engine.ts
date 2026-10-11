@@ -866,7 +866,11 @@ export function monitor(state: RelayState, nowISO: string): RelayState {
   return unchangedOr(state, next);
 }
 
-export function startNextCall(state: RelayState, nowISO: string): RelayState {
+export function startNextCall(
+  state: RelayState,
+  nowISO: string,
+  transport: "simulated" | "amazon-connect" = "simulated",
+): RelayState {
   const now = clock(nowISO);
   if (
     state.paused ||
@@ -886,6 +890,7 @@ export function startNextCall(state: RelayState, nowISO: string): RelayState {
     const volunteer = findVolunteer(next, call.volunteerId);
     if (isQuiet(volunteer, nowISO)) continue;
     call.status = "in_progress";
+    call.transport = transport;
     call.startedAt = nowISO;
     if (call.incidentId) {
       const incident = next.incidents.find(
@@ -898,8 +903,12 @@ export function startNextCall(state: RelayState, nowISO: string): RelayState {
       call,
       nowISO,
       "in_progress",
-      "Simulated call started automatically.",
-      "Waiting for the called volunteer's response in the simulator.",
+      transport === "simulated"
+        ? "Simulated call started automatically."
+        : "Real call reserved for AWS dispatch.",
+      transport === "simulated"
+        ? "Waiting for the called volunteer's response in the simulator."
+        : "Waiting for AWS to accept the outbound call.",
     );
     break;
   }
@@ -910,7 +919,7 @@ export function completeCall(
   state: RelayState,
   callId: string,
   interpretation: Interpretation,
-  provider: "amazon-bedrock" | "manual-simulator",
+  provider: "amazon-bedrock" | "manual-simulator" | "amazon-connect",
   transcript: string,
   nowISO: string,
 ): RelayState {

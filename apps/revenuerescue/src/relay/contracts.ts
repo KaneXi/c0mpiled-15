@@ -111,6 +111,8 @@ export const interpretationSchema = z
 export type Interpretation = z.infer<typeof interpretationSchema>;
 export interface Call {
   shiftVersion?: number;
+  contactId?: string;
+  disconnectedAt?: string;
   id: string;
   shiftId: string;
   volunteerId: string;
@@ -134,7 +136,8 @@ export interface Call {
   transport: "simulated" | "amazon-connect";
   transcript: string;
   result?: Interpretation;
-  interpretationProvider?: "amazon-bedrock" | "manual-simulator";
+  interpretationProvider?:
+    "amazon-bedrock" | "manual-simulator" | "amazon-connect";
   error?: string;
 }
 export interface Candidate {
@@ -168,6 +171,11 @@ export interface Activity {
   transport?: "simulated" | "amazon-connect";
 }
 export interface PhoneTest {
+  mode?: "outbound";
+  startedAt?: string;
+  callerNumber?: string;
+  closesAt?: string;
+  processedTurns?: { key: string; reply: string; close: boolean }[];
   stage: "waiting" | "ready" | "calling" | "completed" | "failed" | "stopped";
   detail: string;
   updatedAt: string;

@@ -23,3 +23,9 @@ The test remains paused after the user's interruption. Completing or ending a ph
 ## 2026-10-11 — Explicit four-person sample reset
 
 The owner requested a testable sample schedule. The existing RESET_DEMO command now accepts an optional sample selector; old clients keep the original seed. The four-person sample is loaded only after the existing destructive-reset confirmation, affects only the current guest tenant, starts paused with drafts and fictional contacts, and uses the unchanged scheduling and simulation services. It does not modify the public real-phone tenant or enable Connect. Dates are regenerated relative to load time. The original seed and independent voice work are preserved.
+
+## 2026-10-11 — Authorized bounded two-person outbound test
+
+The owner provided the second consenting test participant and explicitly requested testing. A separate paused real-name tenant was prepared, with two total outbound attempts, one eligible replacement and a one-hour future shift. A presenter start authorizes this specific bounded automatic-refusal workflow; ordinary guest workspaces retain manager approval. The actual result was original refusal, automatic replacement call, then uncertainty with no assignment. The number was released and the worker disabled. This authorization is not a general dialing permission or authorization to repeat the sequence indefinitely.
+
+The owner requested clearer replacement questions. Initial questions, follow-ups and successful-confirmation receipts now use deterministic local-time windows. Bedrock receives explicit local ISO times. Historical test results are preserved rather than rewritten as successful outcomes.
