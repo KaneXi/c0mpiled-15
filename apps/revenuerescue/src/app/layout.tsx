@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "RevenueRescue — Your next step",
+  title: "Relay — Volunteer coordination",
   description:
-    "An AWS-powered assistant for customer requests and volunteer coordination. Explore with fictional guest data.",
+    "A manager workspace for volunteer schedules, check-ins and replacement coordination. Fictional data; simulated calls.",
   robots: { index: false, follow: false },
 };
 export default function RootLayout({

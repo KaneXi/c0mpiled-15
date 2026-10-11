@@ -1,11 +1,13 @@
-# RevenueRescue + HeartOps guest product
+# Relay manager workspace
 
-Surface mode: Operate. A small English workspace for nontechnical store staff and volunteer coordinators. The public website uses real AWS Bedrock analysis against fictional sample records. It does not provide authenticated customer operations.
+Relay is nonprofit volunteer coordination. The active app is an English manager dashboard, with Schedule, Volunteers and Calls. It replaces the active commercial prototype; preserved legacy files are not reachable from the application routes.
 
-Business has Today, Customers, Appointments and Results. Volunteers has Today, Volunteers, Shifts and Results, with independent state. Switching preserves committed sample changes and clears unfinished forms and tours. Reset affects only the active mode; refresh resets both operational states.
+Managers create draft shifts, assign volunteers and publish the initial schedule. A server worker monitors published schedules, checks permission and calling windows, and starts due simulated calls. The browser reads state every three seconds and never initiates routine calls or advances the workflow clock.
 
-A committed intake automatically creates one bounded analysis job. The assistant checks the same deterministic schedule selectors used by the UI and publishes an internal notification. Proposals require explicit confirmation against current state. A request is not available capacity, a registration is not attendance, and staff-reported sales are not verified payments.
+The central workflow is gap → ranked eligible candidates → manager approval → sequential contact → validated replacement. Yes approves the bounded candidate list. No stops the plan. Assign myself opens a separate confirmation before server validation and assignment. Pause AI Calls is always visible and prevents new calls on the server.
 
-Use a six-step business tour and a five-step volunteer tour, with independent completion preferences. Tour interactions never call the model. Voice examples are prewritten text, with no microphone or telephone access. Standard follow-up drafts and simulated sending remain clearly separate demonstrations.
+Calling is explicitly simulated. Conversation interpretation uses the provider reported by the server. Only when the server reports AWS AI is off may the manager explicitly choose a manual interpretation outcome. Configured or temporarily unavailable Bedrock keeps the real submission path. A separate simulated no-answer action records a transport outcome without claiming AI interpretation. Every call has a result and activity history. Phone, calling consent, recording consent, opt-out, availability and quiet hours remain distinct fields.
 
-Keep Demo · Sample data visible. Show real loading, errors, quota limits and stale suggestions. The offline generated HTML must explicitly disable live analysis and link to the online product. No fake success messages, claimed adoption, external sending, or live billing.
+All operational mutations use the shared Relay API with a request UUID and expected revision. The server owns validation, scheduling, ranking and persistence. Conflict errors refresh the current state and preserve unfinished form data. Refresh restores the existing guest session and its saved fictional tenant.
+
+Help is optional and concise. No marketing surface, chart, automatic tour, live phone controls, independent payment checkout or commercial feature is part of this UI delivery. Authentication and AWS payment readiness must be represented truthfully by their owners and provider status.

@@ -1,12 +1,12 @@
-# RevenueRescue visual direction
+# Relay visual direction
 
-Surface mode: Operate. Warm, calm, approachable staff workspace, sharing the approved warm HeartOps palette across Business and Volunteers.
+Surface mode: Operate. A calm, legible tool for nonprofit managers working through staffing interruptions. Task clarity takes priority over decoration.
 
-- Warm ivory canvas #f8f7f2, subtly deeper sidebar #eeeee6, paper surfaces #fffefb, charcoal #30372f, coral actions #e37a58, deep coral text #aa472c, restrained sage success surfaces.
-- DM Sans, locally hosted. One type family for headings, data, navigation, and forms. Fixed rem sizes and comfortable line height; no display type in controls.
-- Desktop sidebar with four destinations. Today uses a focused inquiry list and detail view, with an appointment summary below. Results are a typographic ledger and real sample action history, not decorative metric cards.
-- Coral marks primary actions and selected states. Standard line icons, consistent controls, thin neutral borders, small corner radii, visible focus. No decorative hero grid, gradients, glass, or excessive animation.
-- Mobile navigation becomes four visible tabs. Lists and detail panels stack; forms and scheduling controls adapt. Targets stay large, labels stay readable, and no important action requires hover.
-- Approve and simulate-send remain separate. Disabled actions explain missing permission or unavailable time. Demo/source labels are visible near actions and across every screen.
+- Retain locally hosted DM Sans and the established warm ivory canvas, soft olive sidebar, charcoal text and restrained coral action color. Deep coral #a9462e supports readable white button text; sage and warm amber signal states with text labels.
+- A compact desktop sidebar holds Schedule, Volunteers and Calls. On small screens it becomes three visible navigation buttons. No hero, marketing sections, decorative KPI cards, charts or animation sequences.
+- The header pairs the current task with a prominent Pause / Resume AI Calls control. A flat status strip contains meaningful counts. Attention plans appear before the schedule, and each plan gives one explanation, a ranked list and Yes / No / Assign myself.
+- Schedule rows show times, assigned and confirmed counts, draft/published status and relevant server incidents. Forms expand inline. Assign myself and destructive reset use native modal dialogs for protected confirmation and keyboard focus.
+- One control vocabulary: thin neutral borders, modest radii, 42–44px targets, visible focus, explicit loading/disabled/error states. Text and forms wrap on mobile. Reduced-motion preferences disable transitions.
+- Fictional data and simulated calling remain visible. Actual provider status is available in a small footer disclosure. Errors explain the recovery; no stale optimistic success is shown.
 
-- Automatic assistant updates use a compact sage section below the heading. Plain-language results come first; actual model/tool provenance is available in a secondary disclosure. Do not place technical infrastructure terms in the main task flow.
+Implementation is isolated in `src/components/relay/Relay.module.css`, using the established global font and reset without altering preserved prototype styling.

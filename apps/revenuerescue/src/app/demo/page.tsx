@@ -1,4 +1,5 @@
-import DemoApp from "@/components/DemoApp";
+import RelayDashboard from "@/components/relay/RelayDashboard";
+
 export default function DemoPage() {
-  return <DemoApp />;
+  return <RelayDashboard />;
 }
