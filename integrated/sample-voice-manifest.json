@@ -1,6 +1,6 @@
 {
-  "sourceCommit": "32396a20bffab73418b63b459db308c83bc67362",
-  "scope": "Website-controlled scheduled outbound demo and sample schedules. Web/API/voice artifacts; no standalone Next.js server, credentials, real telephone numbers or private deployment settings.",
-  "tests": "162 automated tests, typecheck, lint and deployment builds passed. Previous real test verified refusal and sequential replacement dialing. Website-triggered timed lifecycle and replacement acceptance await the presenter test.",
-  "archiveSha256": "eec94b0d5f6dd08f0d9bd0b84d93a6b180444870d9183000d3060beb70cd3652"
+  "sourceCommit": "defdb77c04b73ab50f9e3bda7e824aea3b2abd39",
+  "scope": "Sample schedules, website-controlled scheduled phone demonstrations, and first-month-free pricing with checkout explicitly unavailable. Web/API/voice artifacts only; no credentials, real telephone numbers or standalone Next.js server.",
+  "tests": "162 existing workflow tests passed in the preceding source release. Pricing typecheck, lint, build and rendered disabled-checkout check passed. No new telephone call or payment attempted; new voice lifecycle awaits the presenter test.",
+  "archiveSha256": "3cc0b6a847d5f7c9b3b5c1a454d2e7148a00c0ed446e96174946725af2df5f7b"
 }
