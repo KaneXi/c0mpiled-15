@@ -47,6 +47,14 @@ export function advanceOutbound(state: RelayState, now: string): RelayState {
     };
   }
   let next = monitor(state, now);
+  const selectedReplacement = next.phoneTest?.replacementVolunteerId;
+  if (selectedReplacement)
+    for (const incident of next.incidents.filter(
+      (item) => item.status === "pending",
+    ))
+      incident.candidates = incident.candidates.filter(
+        (candidate) => candidate.volunteerId === selectedReplacement,
+      );
   for (const incident of next.incidents.filter(
     (i) => i.status === "pending" && i.candidates.length,
   )) {

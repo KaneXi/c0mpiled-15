@@ -53,6 +53,7 @@ export const volunteerInputSchema = z
 export type VolunteerInput = z.infer<typeof volunteerInputSchema>;
 export interface Volunteer extends VolunteerInput {
   id: string;
+  callingApprovedByManager?: boolean;
 }
 export const shiftInputSchema = z
   .object({

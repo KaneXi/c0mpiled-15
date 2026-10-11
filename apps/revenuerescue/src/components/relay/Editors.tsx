@@ -21,11 +21,13 @@ export function VolunteerEditor({
   send,
   busy,
   onClose,
+  onSaveLive,
 }: {
   volunteer?: Volunteer;
   send: SendCommand;
   busy: boolean;
   onClose: () => void;
+  onSaveLive?: (volunteer: VolunteerInput, code: string) => Promise<boolean>;
 }) {
   const [windows, setWindows] = useState(
     volunteer?.availability.map((v) => ({
@@ -63,17 +65,17 @@ export function VolunteerEditor({
         optedOut: data.has("optedOut"),
         active: data.has("active"),
       };
-      if (
-        await send(
-          {
-            type: "SAVE_VOLUNTEER",
-            ...(volunteer ? { id: volunteer.id } : {}),
-            volunteer: input,
-          },
-          "Volunteer saved.",
-        )
-      )
-        onClose();
+      const saved = onSaveLive
+        ? await onSaveLive(input, String(data.get("managerCode") ?? "").trim())
+        : await send(
+            {
+              type: "SAVE_VOLUNTEER",
+              ...(volunteer ? { id: volunteer.id } : {}),
+              volunteer: input,
+            },
+            "Volunteer saved.",
+          );
+      if (saved) onClose();
     } catch {
       setError("Check each availability date and time, then save again.");
     }
@@ -90,6 +92,23 @@ export function VolunteerEditor({
       </div>
       <form onSubmit={submit}>
         <fieldset disabled={busy} className={s.fields}>
+          {onSaveLive && (
+            <>
+              <p className={s.hint}>
+                Add a real volunteer to your shared roster. Saving does not
+                start a call. You can then choose them when creating a task.
+              </p>
+              <label>
+                Manager access code
+                <input
+                  name="managerCode"
+                  type="password"
+                  required
+                  autoComplete="off"
+                />
+              </label>
+            </>
+          )}
           <div className={s.formGrid}>
             <label>
               Full name
@@ -112,7 +131,9 @@ export function VolunteerEditor({
                 autoComplete="off"
               />
               <span className={s.hint}>
-                Include country code. Use fictional data in this demo.
+                {onSaveLive
+                  ? "Use a US phone number with country code +1."
+                  : "Include country code. Use fictional data in this demo."}
               </span>
             </label>
             <label>
@@ -120,7 +141,9 @@ export function VolunteerEditor({
               <input
                 name="roles"
                 required
-                defaultValue={volunteer?.roles.join(", ")}
+                defaultValue={
+                  volunteer?.roles.join(", ") ?? (onSaveLive ? "welcome" : "")
+                }
                 placeholder="packing, welcome"
               />
               <span className={s.hint}>Separate roles with commas.</span>
@@ -138,7 +161,10 @@ export function VolunteerEditor({
               <input
                 name="timezone"
                 required
-                defaultValue={volunteer?.timezone ?? browserZone()}
+                defaultValue={
+                  volunteer?.timezone ??
+                  (onSaveLive ? "America/New_York" : browserZone())
+                }
               />
             </label>
             <div className={s.formGrid}>
@@ -146,7 +172,9 @@ export function VolunteerEditor({
                 Quiet hours start
                 <select
                   name="quietStart"
-                  defaultValue={volunteer?.quietHours.start ?? 20}
+                  defaultValue={
+                    volunteer?.quietHours.start ?? (onSaveLive ? 22 : 20)
+                  }
                 >
                   {Array.from({ length: 24 }, (_, h) => (
                     <option key={h} value={h}>
@@ -177,16 +205,20 @@ export function VolunteerEditor({
                 type="checkbox"
                 defaultChecked={volunteer?.callingConsent ?? false}
               />{" "}
-              Permission to call
+              {onSaveLive
+                ? "This volunteer has agreed to receive real scheduling calls"
+                : "Permission to call"}
             </label>
-            <label>
-              <input
-                name="recordingConsent"
-                type="checkbox"
-                defaultChecked={volunteer?.recordingConsent ?? false}
-              />{" "}
-              Permission to record
-            </label>
+            {!onSaveLive && (
+              <label>
+                <input
+                  name="recordingConsent"
+                  type="checkbox"
+                  defaultChecked={volunteer?.recordingConsent ?? false}
+                />{" "}
+                Permission to record
+              </label>
+            )}
             <label>
               <input
                 name="optedOut"
