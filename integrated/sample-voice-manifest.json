@@ -1,6 +1,5 @@
 {
-  "sourceCommit": "defdb77c04b73ab50f9e3bda7e824aea3b2abd39",
-  "scope": "Sample schedules, website-controlled scheduled phone demonstrations, and first-month-free pricing with checkout explicitly unavailable. Web/API/voice artifacts only; no credentials, real telephone numbers or standalone Next.js server.",
-  "tests": "162 existing workflow tests passed in the preceding source release. Pricing typecheck, lint, build and rendered disabled-checkout check passed. No new telephone call or payment attempted; new voice lifecycle awaits the presenter test.",
-  "archiveSha256": "3cc0b6a847d5f7c9b3b5c1a454d2e7148a00c0ed446e96174946725af2df5f7b"
+  "sourceCommit": "e4f02368e9cc5d7e2387f5dbaa564e60e29c5acf",
+  "scope": "Current static website, API and voice Lambda artifacts; requires existing AWS infrastructure and private configuration. Subscription offer is visible; checkout is not connected. No standalone Next.js server in this archive.",
+  "archiveSha256": "4bdaa7c2ac5a04f1ad1d1db3074ce54b75e624125304209704d2695a0a2b5e03"
 }
