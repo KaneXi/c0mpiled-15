@@ -6,16 +6,17 @@
     "node": ">=22.13 <23"
   },
   "scripts": {
-    "dev": "next dev -p 3008",
+    "dev": "RELAY_WORKER_ENABLED=true next dev -p 3008",
     "build": "next build",
-    "start": "node scripts/serve.mjs",
+    "start": "RELAY_WORKER_ENABLED=true next start -p 3008",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint .",
     "bundle:demo": "node scripts/bundle-demo.mjs",
     "format": "prettier --write src tests scripts *.ts *.mjs *.json *.md",
     "build:lambda": "node scripts/build-lambda.mjs",
-    "package:release": "node scripts/package-release.mjs"
+    "package:release": "node scripts/package-relay.mjs",
+    "build:web": "node scripts/build-relay-web.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "3.1149.0",

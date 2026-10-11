@@ -1,50 +1,47 @@
-# c0mpiled-15: Penn State
+# Relay — volunteer coordination
 
-Private team workspace for the c0mpiled-15 hackathon.
+Relay helps a nonprofit manager publish a schedule, confirm attendance and fill gaps through a short approved outreach plan.
 
-**Project: TBD. Track: TBD.** No project concept or technical stack has been selected.
+**Public workspace:** https://rescue.kanexi.me/
 
-## Event
+This branch contains a fictional guest demonstration. Calls are explicitly simulated. The deployed Amazon Bedrock integration interprets full conversation text. No real telephone calls or payments are made.
 
-- Date: October 11, 2026
-- Venue: Engineering Design & Innovation Building, Penn State
-- Official listing: https://luma.com/compiled-jjvw
-- Time zone: America/New_York
+## One workflow
 
-## Schedule
+Publish the sample meal-packing shift. Relay starts a simulated check-in automatically. Enter a cancellation, approve the replacement plan with **Yes**, decline the first replacement offer, and accept the second. Relay assigns one replacement and stops outreach. **No** rejects a plan. **Assign myself** validates the manager's availability and qualifications. **Pause AI Calls** stops new calls while preserving the queue and history.
 
-As listed on the event page checked October 11, 2026:
+## Source and integrated release
 
-| Time | Activity |
-|---|---|
-| 11:00 a.m. | Doors open, registration and team formation |
-| 11:30 a.m. | Introductions and challenge overview |
-| Noon–8:00 p.m. | Building |
-| 8:00 p.m. | Judging begins; optional demos |
-| 8:45 p.m. | Awards and closing |
+- `apps/revenuerescue/`: readable Next.js, TypeScript and React source. The directory name is retained from the preserved prototype.
+- `apps/revenuerescue/src/relay/`: canonical contracts, deterministic workflow, persistent server and Bedrock provider.
+- `infra/`: reproducible AWS infrastructure.
+- `integrated/relay-release.zip`: generated runnable server plus website/Lambda distribution with a source-commit manifest and checksums.
+- `docs/API_CONTRACTS.md`, `docs/DECISIONS.md`, `docs/BUILD_STATUS.md`: integration truth and verification status.
 
-Confirm submission format, deadlines, and presentation arrangements with the organizers.
+The original commercial prototype is preserved in Git history. Main remains event-only; no automatic merge is authorized.
 
-## Tracks
+## Local development
 
-- **Track 1A — Build a Self-Improving Agent Team:** Parallel agents repeatedly propose, test, and learn using DeepSeek or GLM Flash hosted on Luminal Cloud. Show a working demo, baseline, iteration results, and fresh final tests.
-- **Track 1B — YC Requests for Startups:** Select a topic from YC's Fall 2026 Requests for Startups.
-- **Track 2 — Build AND Sell:** Build and validate a product through sales or progress toward sales during the event.
+Use Node.js 22.13 or later in the 22.x series.
 
-Refer to the official listing and organizer announcements for current rules.
+```sh
+cd apps/revenuerescue
+npm ci
+AWS_PROFILE=revenuerescue AWS_REGION=us-east-2 RELAY_AI_ENABLED=true npm run dev
+```
 
-## Collaboration workflow
+Open http://localhost:3008/. Use an authenticated AWS profile with permission to invoke the configured model. No credentials belong in Git. Omitting `RELAY_AI_ENABLED=true` explicitly disables AI; the simulator then requires a manually selected outcome and labels it accordingly.
 
-1. Discuss ideas and select a project and track.
-2. Create Issues with an objective, owner, and acceptance criteria.
-3. Make changes on descriptive branches such as `feat/12-task-name`.
-4. Open pull requests referencing the relevant Issues and include validation evidence.
-5. Review and merge completed changes into `main`.
+SQLite saves local fictional tenant data under `.data/`, which is ignored by Git. Guest sessions last two hours; cloud demo records expire after one day. Refreshing the browser does not reset the workspace. Use **Reset demo** deliberately to start over.
 
-Use Issues to track tasks, decisions, and blockers. Branch protection is not configured; review is a team convention.
+```sh
+npm run typecheck
+npm run lint
+npm test
+npx tsx --test src/components/relay/api.test.ts
+npm run build
+npm run build:web
+npm run build:lambda
+```
 
-## Access
-
-This repository is private. The owner manages individual invitations in Settings > Collaborators. Access is granted to invited GitHub accounts, not through an email-domain allowlist.
-
-Do not commit credentials or `.env` files.
+Commit the readable source before running `npm run package:release`. The manifest records the source commit and artifact checksums. See `docs/relay-aws.md` for integration boundaries.

@@ -225,7 +225,7 @@ describe("public endpoint admission and isolation", () => {
         expiresAt: Math.floor(NOW / 1000),
         jobsUsed: 0,
       });
-    if (variant === "oversized utf8") incoming.body = "界".repeat(11000);
+    if (variant === "oversized utf8") incoming.body = "\u754c".repeat(11000);
     if (variant === "oversized base64") {
       incoming.body = Buffer.from("x".repeat(32769)).toString("base64");
       incoming.isBase64Encoded = true;

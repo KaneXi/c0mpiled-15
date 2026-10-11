@@ -1,0 +1,24 @@
+name: Relay checks
+on:
+  pull_request:
+  push:
+    branches: ['feat/**', 'codex/revenuerescue-product']
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/revenuerescue
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/revenuerescue/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npx tsx --test src/components/relay/api.test.ts
+      - run: npm run build

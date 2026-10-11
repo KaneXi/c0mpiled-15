@@ -1,51 +1,48 @@
 # Relay AWS integration status
 
-Role B, issue #4. This document distinguishes implemented adapters from unverified account setup. No resources, phone numbers, calls, payments, or service settings were changed by this work. The old deployed v7 `AGENT_ENABLED=false` setting is preserved.
+Updated October 11, 2026. This is a fast core release for fictional nonprofit workflows. It does **not** complete every requirement in the Relay operating manual.
 
-## Bedrock adapter — implemented, service integration pending
+## Current deployment
 
-`apps/revenuerescue/src/relay/providers/agent.ts` exports `createAgentProvider(): AgentProvider`. The server service must reserve durable usage before calling `interpret()` and must apply its own tenant, revision, consent, workflow, and scheduling checks afterward. The provider does not mutate schedules or trigger calls.
+The Relay frontend and backend are deployed to the existing AWS stack, with AI enabled. The domain [rescue.kanexi.me](https://rescue.kanexi.me) has valid DNS and a certificate. CloudFormation reached `UPDATE_COMPLETE`; the public smoke test passed at **2026-10-11 20:19:39 UTC** (4:19:39 PM Eastern).
 
-- Set `RELAY_AI_ENABLED=true` deliberately on the Relay server. `RELAY_BEDROCK_MODEL_ID` defaults to `amazon.nova-lite-v1:0`; `AWS_REGION` defaults to `us-east-2`.
-- Local development uses `AWS_PROFILE=revenuerescue` with the existing temporary AWS CLI login. Do not copy login caches or credentials into the project. The installed SDK's default Node provider chain already includes the login provider; no additional dependency is needed. Hosted code leaves the local profile unset and uses its scoped runtime role. [AWS SDK credential chain](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/setting-credentials-node.html), [temporary console login credentials](https://docs.aws.amazon.com/sdkref/latest/guide/access-login.html).
-- One real `Converse` request interprets the complete supplied conversation. Limits: 8,000 transcript characters, 800 output tokens, 18 seconds, one SDK attempt. Output is strict Zod-validated JSON. Low confidence, missing essential partial/late times, or an unsupported no-answer inference requires clarification. Confidence is the model's estimate, not a calibrated probability. [Converse API](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html).
-- Only the conversation, call purpose/time, shift facts, and timezone are sent. Stored volunteer names and phone numbers are not included as separate fields; people can still mention personal information in the transcript, so use fictional data for the guest demo.
-- Disabled means unavailable; enabled initially means configured but awaiting successful execution. Only an actual successful call reports live. Provider failure reports unavailable and never silently substitutes a manual result. The calling transport remains independently labeled simulated.
-- The prior account probe verified Nova Lite inference in Ohio. This adapter's tests use an injected transport; they do not establish deployed role access or real semantic accuracy. A bounded integrated test with novel corrections, uncertainty, partial availability and opt-outs is still required before declaring the Relay integration working.
+- **Hosted:** private S3 and CloudFront serve the interface; API Gateway and Lambda run the shared Relay services; DynamoDB persists fictional tenant state, sessions, workflow records and usage limits. An EventBridge worker runs every minute independently of the browser.
+- **Local:** Next.js route handlers use the same services with SQLite persistence and a server worker.
+- **Access:** opaque guest-manager sessions last two hours; fictional tenants expire after 24 hours. This is a guest demo with server-side tenant isolation, not Cognito accounts or durable customer onboarding.
+- **Calling:** always simulated. Published schedules drive routine check-ins; managers approve replacement outreach plans. The simulated workflow enforces pause, consent, quiet hours, eligibility and bounded sequential outreach. No real telephone calls are placed.
+- **Cost limits:** durable reservations cap AI analyses at 100 per day, 500 lifetime and 20 per tenant. Failed or uncertain model requests consume their reservation. These limits constrain inference usage; they are not a guarantee of zero hosting or API charges.
 
-## Smallest credible hosted workflow change
+## Real Bedrock interpretation
 
-The existing v7 stack has static S3/CloudFront pages, an HTTP API/Lambda, short-lived guest jobs/quotas in DynamoDB, and logs. Its browser-owned sample schedule is not a durable nonprofit operations database. Do not label it a multi-tenant Relay release.
+`apps/revenuerescue/src/relay/providers/agent.ts` exports `createAgentProvider()`. It interprets the full supplied conversation through `amazon.nova-lite-v1:0` in `us-east-2`, then validates a structured outcome. Deterministic domain services control all schedule and workflow changes.
 
-1. Keep one set of shared domain services. Next.js route handlers use local SQLite for development and tenant-scoped DynamoDB repositories when hosted. A Cognito identity maps to server-owned tenant membership and role; never trust a client-selected tenant.
-2. Persist published schedules, consent/opt-out/recording-consent state, pause state, approvals and approved candidate bounds, call attempts, results, activity, and idempotency records. Do not TTL-delete business state merely because guest analysis jobs expire.
-3. A scheduled server worker discovers due work independently of browser requests. One recurring EventBridge Scheduler target can invoke the worker; durable due rows and conditional leases prevent duplicate starts. Configure retry limits and a dead-letter queue. Scheduler retries are transport retries, not permission to repeat a phone call. [Scheduler failure handling](https://docs.aws.amazon.com/scheduler/latest/UserGuide/managing-schedule.html).
-4. Immediately before a call starts, revalidate pause, consent, quiet hours, opt-out, shift version, candidate eligibility, approval scope and attempt caps. Persist a call-attempt identity before dispatch. Ambiguous provider outcomes require reconciliation, not an automatic new call. Commit a replacement with conditional writes so only one acceptance fills a gap. Pause blocks new starts; explicitly define safe handling of calls already dispatched.
-5. Keep hosting changes separate from the old guest deployment. Amplify supports Next.js 15 API routes/SSR and runtime IAM roles, but manual ZIP deployment does not support SSR; Git-connected hosting needs repository authorization. The current static-export build cannot itself run Next.js route handlers. [Next.js hosting support](https://docs.aws.amazon.com/amplify/latest/userguide/ssr-amplify-support.html), [manual deployment limit](https://docs.aws.amazon.com/amplify/latest/userguide/manual-deploys.html), [SSR compute role](https://docs.aws.amazon.com/amplify/latest/userguide/amplify-SSR-compute-role.html).
+Each interpretation permits one SDK attempt, 8,000 transcript characters, 800 output tokens and an 18-second deadline. Low confidence or missing essential partial/late timing becomes a clarification request. Model confidence is an estimate, not a calibrated probability. Failures remain visible and never silently become simulated AI success. A simulated call can therefore have a **real Bedrock interpretation**; the two provider labels remain separate.
 
-## Remaining access and decisions
+The parser accepts plain JSON or one complete JSON fence, then applies strict schema validation. An explicit `clarification: null` becomes an empty string; missing fields, incorrect types, surrounding prose, inconsistent times and unsupported outcomes remain rejected.
 
-| Integration | Actual evidence and remaining blocker |
+Local development selects temporary login credentials with `AWS_PROFILE=revenuerescue`. Hosted execution uses its IAM role; no local login cache or credentials are deployed. `RELAY_AI_ENABLED` controls the Relay provider. [AWS credential chain](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/setting-credentials-node.html), [Bedrock Converse](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html).
+
+## Verified behavior
+
+Both the local API flow and the public deployment completed three real Bedrock interpretations. The public test used the deployed IAM role:
+
+1. Taylor corrected an earlier commitment and could no longer attend → `declined`.
+2. Avery declined the replacement request → `declined`; outreach advanced to the next approved candidate.
+3. Samira accepted → `confirmed`; one replacement was committed and all further outreach stopped.
+
+The public test also verified human schedule publication, automatic check-in creation, pause blocking new outreach, resume with bounded manager approval, an idempotent completion re-submit with no revision change, and persistent DynamoDB readback at revision 15. The private nonsecret result record is `apps/revenuerescue/.local/relay-smoke-result.json`; it records all checks passing and every tested API response returning HTTP 200. This establishes the tested guest workflow, not the unfinished integrations below.
+
+A separate post-fix replacement-decline probe returned `amazon-bedrock` / `declined` in 1,014 ms. Eighteen provider tests pass, including strict output validation, low-confidence clarification, partial availability, opt-outs, one-call bounds and honest failures. Typecheck and scoped lint passed for the provider changes. These checks establish the tested cases, not universal speech or semantic accuracy. The transcript is entered through the simulator; live speech recognition is not implemented.
+
+Earlier fenced-JSON and nullable-clarification failures were repaired and superseded by these successful checks. Private raw fictional probe responses remain in ignored local evidence directories; no credentials or raw conversations are committed here.
+
+## Required integrations still absent
+
+| Integration | Remaining work |
 | --- | --- |
-| Cognito | Earlier read-only inventory found no pools. Need a pool, client/callback configuration, invite/membership policy, manager role mapping, and server JWT verification. Provisioning/access is not verified here. Authentication alone does not enforce tenant isolation. [Token verification](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html). |
-| Connect | No verified instance/claimed number/published outbound flow. Core Connect is available in Northern Virginia, not Ohio. Need explicit paid-resource/number/call authorization, destination-country eligibility, verified permission and calling windows, caller ID, and a published flow. `StartOutboundVoiceContact` supports a `ClientToken`, flow and destination plus configured source number/queue; returning a contact ID means initiation, not acceptance/completion. Live outcome events and semantic dialogue still need integration and testing. Implementation is deliberately deferred; no dummy real-call success. [Connect endpoints](https://docs.aws.amazon.com/general/latest/gr/connect_region.html), [outbound API](https://docs.aws.amazon.com/connect/latest/APIReference/API_StartOutboundVoiceContact.html). |
-| Cost Anomaly Detection | No verified monitor or subscription is evidenced in this work. Need billing permissions, an approved alert threshold, and the human's notification destination. Create a real monitor plus subscription only when authorized; retain nonsecret resource identifiers and confirmation evidence. Email supports daily/weekly summaries; immediate subscriptions use SNS. This is delayed cost-data monitoring, not an instant spend ceiling or staffing-risk detector. [Setup](https://docs.aws.amazon.com/cost-management/latest/userguide/getting-started-ad.html), [subscription channels](https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_AnomalySubscription.html), [detection delay](https://docs.aws.amazon.com/cost-management/latest/userguide/manage-ad.html). |
-| AWS App Monetization beta | Actual organizer welcome material was supplied previously, but no installed authorized skill, working token, verified entitlement/metering or checkout execution is established here. The organizer token and confidential instructions must stay outside Git. Complete only the official skill's documented integration; use credit-card-only test Stripe Connect behind AWS App Monetization. No direct Stripe SDK, alternate checkout, real sale claim, or production billing. Exact integration APIs remain unverified and are not invented in code. |
+| Amazon Connect | No real calling adapter, verified instance, phone number or published outbound flow. Requires explicit authorization for chargeable setup and calls, actual number/region eligibility, consent and recording policy, caller ID and tested contact outcome handling. Core Connect is not available in Ohio; Northern Virginia is a supported option. [Endpoints](https://docs.aws.amazon.com/general/latest/gr/connect_region.html), [outbound API](https://docs.aws.amazon.com/connect/latest/APIReference/API_StartOutboundVoiceContact.html). |
+| Cognito | No account sign-in or customer membership provisioning. Requires a pool/client, callback configuration, manager roles, server token verification and tenant membership enforcement. Guest sessions do not satisfy this requirement. [Token verification](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html). |
+| AWS Cost Anomaly Detection | No verified monitor-and-notification subscription. Needs billing access, an approved threshold and a confirmed notification destination. This detects delayed infrastructure cost anomalies; it is neither staffing-risk detection nor an immediate spending stop. [Setup](https://docs.aws.amazon.com/cost-management/latest/userguide/getting-started-ad.html), [detection delay](https://docs.aws.amazon.com/cost-management/latest/userguide/manage-ad.html). |
+| Official AWS App Monetization | No verified organizer skill integration, metering/entitlements or test checkout. The private beta requires organizer-authorized access and its documented test Stripe Connect flow. Only credit-card test payments are in scope; no direct Stripe checkout, real payments or production billing claims. Keep all private onboarding documents and registry tokens outside Git. |
 
-The prior Ohio account concurrency inventory was only 10; do not assume ordinary positive Lambda reserved-concurrency settings are allowed. Recheck limits and service eligibility before provisioning. Durable application quotas remain required; cloud billing alerts are a backstop, not an exact hard cap.
-
-## Verification
-
-Provider tests cover full-conversation forwarding, one-call/token bounds, no contact-field forwarding, input identity checks, low-confidence clarification, valid partial availability, opt-out preservation, invalid/malformed/truncated outputs, disabled/cancelled requests, and honest AWS failures. They test the adapter contract, not real-world model accuracy. No new AWS calls were made during these tests.
-
-### Bounded live probe — October 11, 2026
-
-Three separately authorized fictional probes used the local temporary profile and Nova Lite in Ohio, with one attempt per scenario. AWS authentication and inference succeeded. Each original provider request failed because the model wrapped its JSON in a single Markdown fence. The provider now unwraps only an entire, single JSON fence before the same strict JSON/schema validation; surrounding prose is still rejected.
-
-| Scenario | Initial provider result | Latency | Recorded model result |
-| --- | --- | --- | --- |
-| Corrected cancellation | Failed JSON parsing; no outcome applied | 1,137 ms | Raw response was not retained; semantic outcome remains unverified. |
-| Full shift confirmation | Failed JSON parsing; no outcome applied | 632 ms | `confirmed`, confidence 0.95, valid JSON after removing its outer fence. |
-| Uncertain partial availability | Failed JSON parsing; no outcome applied | 760 ms | `uncertain`, confidence 0.7, valid JSON after removing its outer fence. |
-
-No further model requests were made after the three-call cap. Parser regression tests cover valid fenced JSON and reject surrounding prose. A fresh end-to-end probe after this fix remains necessary, particularly for the correction case. Private raw fictional probe responses and diagnostic metadata remain in the ignored worktree `.local/` directory; no credentials or raw conversations are committed.
+The owner selected a fast core release. Real calls, persistent customer accounts, official beta billing and cost-anomaly notification remain separate unfinished deliverables; the release must not be represented as completing the full manual.

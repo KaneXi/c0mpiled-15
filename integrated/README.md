@@ -1,17 +1,38 @@
 # Integrated deliveries
 
-The primary product is the [online AWS application](https://rescue.kanexi.me).
+**Relay is the current product:** a nonprofit volunteer scheduling and replacement workflow. Its readable source is in [`../apps/revenuerescue/`](../apps/revenuerescue/). Product changes belong on separate feature branches; `main` remains event-only.
 
-## Offline preview
+The target public address is [rescue.kanexi.me](https://rescue.kanexi.me). Deployment is verified; consult [build status](../docs/BUILD_STATUS.md) for verified availability.
 
-Open `revenuerescue-demo.html` in a current browser. This secondary preview includes the interface, fictional scheduling logic and local fonts. The live AWS assistant is explicitly unavailable; no analysis or provider request is made. Navigation to the online product is an explicit link.
+## Current Relay package
 
-All examples are fictional. Refreshing resets operational records. No external message or payment is processed.
+`relay-release.zip` is the new runnable release artifact produced by the packaging command. It contains the standalone Next.js server, static website, Lambda bundle, infrastructure template, and a source-commit manifest. No credentials or private onboarding materials belong in the package.
 
-## AWS release package
+After extracting a generated package, use Node.js 22.13 or later in the 22.x series and run from its `server/` directory:
 
-`aws-release.zip` contains the generated static website, bundled Lambda code, infrastructure template and release manifest. It contains no AWS credentials, origin-verification secret, guest session or private onboarding material. The readable source remains in `../apps/revenuerescue/` and `../infra/`. Deployment instructions are in `../docs/deployment.md`.
+```sh
+RELAY_WORKER_ENABLED=true PORT=3008 HOSTNAME=127.0.0.1 node server.js
+```
 
-Regenerate from the app directory using `npm run build`, `npm run build:lambda`, `npm run bundle:demo` and `npm run package:release`. Do not edit generated artifacts manually. `SHA256SUMS` identifies the generated deliverables.
+Open `http://localhost:3008`. Keep the server running for automatic local monitoring. SQLite persists local fictional records across restarts. To enable real Bedrock, add `RELAY_AI_ENABLED=true`, an authenticated `AWS_PROFILE`, and the appropriate `AWS_REGION` to that environment. Without AI enabled, explicitly select a labeled manual simulator outcome. Telephone transport remains simulated in both cases. No payments are enabled.
 
-The offline file bundles React, React DOM, Luxon, Lucide and DM Sans. License notices are retained in bundled code and the readable packages. DM Sans licensing is in the app's `public/fonts/OFL.txt`.
+Regenerate the release from the readable app directory after validating and committing its source:
+
+```sh
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run build:web
+npm run build:lambda
+npm run package:release
+```
+
+`release-manifest.json` identifies the packaged source commit; `SHA256SUMS` verifies the generated archive. Do not edit generated bundles manually. See the [guest demo guide](../docs/guest-demo.md) for the complete workflow and current limitations.
+
+## Archived prototype
+
+**`revenuerescue-demo.html` is an archived RevenueRescue prototype, not the current Relay application.** It preserves the earlier business/volunteer browser demonstration for reference. Its operational data resets on refresh, its AWS assistant is unavailable, and it does not represent the durable Relay workflow or current deployment.
+
+The archived HTML bundles React, React DOM, Luxon, Lucide, and DM Sans. Retain its bundled license notices; the font license is in [`../apps/revenuerescue/public/fonts/OFL.txt`](../apps/revenuerescue/public/fonts/OFL.txt).

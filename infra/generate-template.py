@@ -17,7 +17,7 @@ r["RuntimeRole"] = resource("AWS::IAM::Role", {
     "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
     "Policies": [{"PolicyName": "GuestAgentRuntime", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
         {"Effect": "Allow", "Action": "bedrock:InvokeModel", "Resource": sub("arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/amazon.nova-lite-v1:0")},
-        {"Effect": "Allow", "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:ConditionCheckItem"], "Resource": att("UsageTable", "Arn")},
+        {"Effect": "Allow", "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:ConditionCheckItem", "dynamodb:Scan"], "Resource": att("UsageTable", "Arn")},
         {"Effect": "Allow", "Action": ["logs:CreateLogStream", "logs:PutLogEvents"], "Resource": sub("arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-agent:*")},
     ]}}], "Tags": tags,
 })
@@ -26,15 +26,17 @@ r["AgentFunction"] = resource("AWS::Lambda::Function", {
     "FunctionName": sub("${AWS::StackName}-agent"), "Runtime": "nodejs22.x", "Handler": "index.handler",
     "Role": att("RuntimeRole", "Arn"), "Timeout": 25, "MemorySize": 512,
     "Code": {"ZipFile": 'exports.handler=async()=>({statusCode:503,headers:{"content-type":"application/json","cache-control":"no-store"},body:JSON.stringify({error:{code:"DEPLOYING",message:"The online assistant is being deployed."}})});'},
-    "Environment": {"Variables": {"TABLE_NAME": ref("UsageTable"), "MODEL_ID": "amazon.nova-lite-v1:0", "ORIGIN_SECRET": ref("OriginSecret"), "ALLOWED_ORIGINS": ref("AllowedOrigins"), "AGENT_ENABLED": ref("AgentEnabled")}},
+    "Environment": {"Variables": {"TABLE_NAME": ref("UsageTable"), "MODEL_ID": "amazon.nova-lite-v1:0", "ORIGIN_SECRET": ref("OriginSecret"), "ALLOWED_ORIGINS": ref("AllowedOrigins"), "AGENT_ENABLED": ref("AgentEnabled"), "RELAY_AI_ENABLED": ref("AgentEnabled"), "RELAY_TABLE_NAME": ref("UsageTable"), "RELAY_ALLOWED_ORIGINS": ref("AllowedOrigins")}},
     "Tags": tags,
 }, DependsOn="AgentLogs")
 r["HttpApi"] = resource("AWS::ApiGatewayV2::Api", {"Name": sub("${AWS::StackName}-api"), "ProtocolType": "HTTP", "Tags": {"Project": "RevenueRescue"}})
 r["Integration"] = resource("AWS::ApiGatewayV2::Integration", {"ApiId": ref("HttpApi"), "IntegrationType": "AWS_PROXY", "IntegrationUri": att("AgentFunction", "Arn"), "PayloadFormatVersion": "2.0", "TimeoutInMillis": 28000})
-for name in ["session", "analyze", "status"]:
-    r[name.title()+"Route"] = resource("AWS::ApiGatewayV2::Route", {"ApiId": ref("HttpApi"), "RouteKey": "POST /api/"+name, "Target": {"Fn::Join": ["/", ["integrations", ref("Integration")]]}})
 r["Stage"] = resource("AWS::ApiGatewayV2::Stage", {"ApiId": ref("HttpApi"), "StageName": "$default", "AutoDeploy": True, "DefaultRouteSettings": {"ThrottlingBurstLimit": 2, "ThrottlingRateLimit": 1}, "Tags": {"Project": "RevenueRescue"}})
-r["InvokePermission"] = resource("AWS::Lambda::Permission", {"FunctionName": ref("AgentFunction"), "Action": "lambda:InvokeFunction", "Principal": "apigateway.amazonaws.com", "SourceArn": sub("arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/POST/api/*")})
+r["InvokePermission"] = resource("AWS::Lambda::Permission", {"FunctionName": ref("AgentFunction"), "Action": "lambda:InvokeFunction", "Principal": "apigateway.amazonaws.com", "SourceArn": sub("arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*/api/*")})
+for name, method in [("session", "POST"), ("command", "POST"), ("state", "GET")]:
+    r["Relay"+name.title()+"Route"] = resource("AWS::ApiGatewayV2::Route", {"ApiId": ref("HttpApi"), "RouteKey": method+" /api/relay/"+name, "Target": {"Fn::Join": ["/", ["integrations", ref("Integration")]]}})
+r["RelayMonitor"] = resource("AWS::Events::Rule", {"ScheduleExpression": "rate(1 minute)", "State": "ENABLED", "Targets": [{"Arn": att("AgentFunction", "Arn"), "Id": "RelayMonitor", "Input": '{"source":"relay.worker"}'}]})
+r["RelayMonitorPermission"] = resource("AWS::Lambda::Permission", {"FunctionName": ref("AgentFunction"), "Action": "lambda:InvokeFunction", "Principal": "events.amazonaws.com", "SourceArn": att("RelayMonitor", "Arn")})
 r["SiteBucket"] = resource("AWS::S3::Bucket", {"PublicAccessBlockConfiguration": {"BlockPublicAcls": True, "BlockPublicPolicy": True, "IgnorePublicAcls": True, "RestrictPublicBuckets": True}, "BucketEncryption": {"ServerSideEncryptionConfiguration": [{"ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}, "OwnershipControls": {"Rules": [{"ObjectOwnership": "BucketOwnerEnforced"}]}, "Tags": tags}, DeletionPolicy="Retain", UpdateReplacePolicy="Retain")
 r["SiteOAC"] = resource("AWS::CloudFront::OriginAccessControl", {"OriginAccessControlConfig": {"Name": sub("${AWS::StackName}-s3"), "OriginAccessControlOriginType": "s3", "SigningBehavior": "always", "SigningProtocol": "sigv4"}})
 r["StaticRewrite"] = resource("AWS::CloudFront::Function", {"Name": sub("${AWS::StackName}-pages"), "AutoPublish": True, "FunctionConfig": {"Comment": "Map exported page routes to HTML without changing API requests", "Runtime": "cloudfront-js-2.0"}, "FunctionCode": 'function handler(event){var r=event.request;var u=r.uri;if(u==="/")r.uri="/index.html";else if(u.endsWith("/"))r.uri=u.slice(0,-1)+".html";else if(!u.split("/").pop().includes("."))r.uri=u+".html";return r;}'} )
@@ -52,7 +54,7 @@ r["Distribution"] = resource("AWS::CloudFront::Distribution", {"DistributionConf
 }, "Tags": tags})
 r["BucketPolicy"] = resource("AWS::S3::BucketPolicy", {"Bucket": ref("SiteBucket"), "PolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "cloudfront.amazonaws.com"}, "Action": "s3:GetObject", "Resource": sub("${SiteBucket.Arn}/*"), "Condition": {"StringEquals": {"AWS:SourceArn": sub("arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}")}}}]}})
 template = {
-    "AWSTemplateFormatVersion": "2010-09-09", "Description": "RevenueRescue bounded public AWS guest demo",
+    "AWSTemplateFormatVersion": "2010-09-09", "Description": "Relay nonprofit workflow guest demonstration",
     "Parameters": {
         "OriginSecret": {"Type": "String", "NoEcho": True, "MinLength": 32},
         "AllowedOrigins": {"Type": "String", "Default": "https://rescue.kanexi.me"},

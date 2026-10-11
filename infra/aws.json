@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "RevenueRescue bounded public AWS guest demo",
+  "Description": "Relay nonprofit workflow guest demonstration",
   "Parameters": {
     "OriginSecret": {
       "Type": "String",
@@ -107,7 +107,8 @@
                     "dynamodb:GetItem",
                     "dynamodb:PutItem",
                     "dynamodb:UpdateItem",
-                    "dynamodb:ConditionCheckItem"
+                    "dynamodb:ConditionCheckItem",
+                    "dynamodb:Scan"
                   ],
                   "Resource": {
                     "Fn::GetAtt": [
@@ -186,6 +187,15 @@
             },
             "AGENT_ENABLED": {
               "Ref": "AgentEnabled"
+            },
+            "RELAY_AI_ENABLED": {
+              "Ref": "AgentEnabled"
+            },
+            "RELAY_TABLE_NAME": {
+              "Ref": "UsageTable"
+            },
+            "RELAY_ALLOWED_ORIGINS": {
+              "Ref": "AllowedOrigins"
             }
           }
         },
@@ -227,66 +237,6 @@
         "TimeoutInMillis": 28000
       }
     },
-    "SessionRoute": {
-      "Type": "AWS::ApiGatewayV2::Route",
-      "Properties": {
-        "ApiId": {
-          "Ref": "HttpApi"
-        },
-        "RouteKey": "POST /api/session",
-        "Target": {
-          "Fn::Join": [
-            "/",
-            [
-              "integrations",
-              {
-                "Ref": "Integration"
-              }
-            ]
-          ]
-        }
-      }
-    },
-    "AnalyzeRoute": {
-      "Type": "AWS::ApiGatewayV2::Route",
-      "Properties": {
-        "ApiId": {
-          "Ref": "HttpApi"
-        },
-        "RouteKey": "POST /api/analyze",
-        "Target": {
-          "Fn::Join": [
-            "/",
-            [
-              "integrations",
-              {
-                "Ref": "Integration"
-              }
-            ]
-          ]
-        }
-      }
-    },
-    "StatusRoute": {
-      "Type": "AWS::ApiGatewayV2::Route",
-      "Properties": {
-        "ApiId": {
-          "Ref": "HttpApi"
-        },
-        "RouteKey": "POST /api/status",
-        "Target": {
-          "Fn::Join": [
-            "/",
-            [
-              "integrations",
-              {
-                "Ref": "Integration"
-              }
-            ]
-          ]
-        }
-      }
-    },
     "Stage": {
       "Type": "AWS::ApiGatewayV2::Stage",
       "Properties": {
@@ -313,7 +263,102 @@
         "Action": "lambda:InvokeFunction",
         "Principal": "apigateway.amazonaws.com",
         "SourceArn": {
-          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/POST/api/*"
+          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*/api/*"
+        }
+      }
+    },
+    "RelaySessionRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "POST /api/relay/session",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Integration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "RelayCommandRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "POST /api/relay/command",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Integration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "RelayStateRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "GET /api/relay/state",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Integration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "RelayMonitor": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "rate(1 minute)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "AgentFunction",
+                "Arn"
+              ]
+            },
+            "Id": "RelayMonitor",
+            "Input": "{\"source\":\"relay.worker\"}"
+          }
+        ]
+      }
+    },
+    "RelayMonitorPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "AgentFunction"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "RelayMonitor",
+            "Arn"
+          ]
         }
       }
     },

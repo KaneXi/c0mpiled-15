@@ -25,9 +25,9 @@ describe("public delivery safety boundaries", () => {
     expect(template.Parameters.OriginSecret).toMatchObject({ NoEcho: true, MinLength: 32 });
   });
 
-  it("exposes only the three explicit POST API routes and throttles admission", () => {
+  it("exposes only Relay session, state and command routes and throttles admission", () => {
     const routes = Object.values(resources).filter((item) => item.Type === "AWS::ApiGatewayV2::Route").map((item) => item.Properties.RouteKey);
-    expect(routes.sort()).toEqual(["POST /api/analyze", "POST /api/session", "POST /api/status"]);
+    expect(routes.sort()).toEqual(["GET /api/relay/state", "POST /api/relay/command", "POST /api/relay/session"]);
     expect(resources.Stage.Properties.DefaultRouteSettings).toMatchObject({ ThrottlingBurstLimit: 2, ThrottlingRateLimit: 1 });
     expect(resources.Integration.Properties.TimeoutInMillis).toBeGreaterThan(Number(resources.AgentFunction.Properties.Timeout) * 1000);
     expect(template.Parameters.AgentEnabled.Default).toBe("false");

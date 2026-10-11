@@ -1,27 +1,45 @@
-# Guest demonstration guide
+# Relay guest demo
 
-The primary delivery is the public AWS-backed website. The integrated HTML is a secondary offline preview. Both use fictional business and volunteer records; refreshing resets operational records.
+Relay coordinates nonprofit volunteer shifts. A manager publishes the schedule; Relay automatically checks attendance, identifies staffing gaps, proposes eligible replacements, and follows a bounded outreach plan after approval.
 
-## Business
+The public deployment target is [rescue.kanexi.me](https://rescue.kanexi.me). Deployment is verified; see [build status](BUILD_STATUS.md) for verified availability. Real Amazon Bedrock interpretation has passed the complete public end-to-end workflow. Phone calls are simulated, and payments are not enabled.
 
-Create a fictional inquiry or simulate an incoming request. The AWS assistant analyzes it automatically, checks the available sample schedule, and posts an internal notification. Confirm a current proposed time to update the sample booking. The original booking survives an invalid replacement.
+## Try the workflow
 
-The separate sample follow-up flow is draft, edit, approve, then simulate sending. Editing invalidates approval. No external message is sent. Outcomes and sales amounts are manually reported demo values, not payment evidence.
+1. Open a guest workspace. It contains fictional Community Table volunteers and draft shifts. Review the volunteers' roles, availability, phone numbers, and separate calling permissions.
+2. Publish **Community meal packing**. Relay's background worker plans Taylor Reed's check-in automatically. Calls wait when paused or outside the volunteer's calling hours.
+3. In the active simulated call, enter a fictional conversation in which Taylor can no longer attend. With AI enabled, Bedrock interprets the conversation; the server checks the result and assesses coverage.
+4. Review the proposed replacement plan. **Yes** approves its named candidates and attempt limit. **No** stops the plan. **Assign myself** validates the manager's availability, role, and conflicts before assigning them.
+5. After Yes, simulate Avery declining and Samira accepting. Relay contacts candidates sequentially, checks eligibility again, and commits the accepted replacement. Each call records its outcome, summary, next action, and simulated transport.
+6. Try **Pause AI Calls**. New calls stop; monitoring continues. An active call may finish safely. Resume rechecks permissions and eligibility before starting another call.
 
-## Volunteers
+Uncertain, partial, or contradictory responses require clarification rather than an invented confirmation. A provider error stays visible and requires an explicit retry; it never becomes fake AI success.
 
-Switch to Volunteers to register interest, record availability, and coordinate a sample shift. Confirming an assignment checks role, availability, remaining places and overlap. Moving a volunteer checks the replacement before changing the original. Completion is possible only after a shift has ended on the fixed demo clock. Only recorded completed minutes contribute to hours.
+## Run the readable source
 
-A voice example creates an unassigned registration with unknown availability and contact permission off. Its text can be analyzed by AWS outside the guided tour, but it is not a real recording or transcription.
+Use Node.js 22.13 or later in the 22.x series. From `apps/revenuerescue`:
 
-## What makes the assistant real
+```sh
+npm ci
+npm run dev
+```
 
-The public backend uses Amazon Bedrock Nova Lite with read-only business availability or volunteer shift tools. It requires a real tool result before accepting a proposal, and reconstructs actionable values from server-issued options. It cannot book, assign, complete, approve, send or charge on its own. The notification shows the actual provider and tool provenance.
+Open `http://localhost:3008`. The development command enables the background worker. Without AI enabled, choose an explicit manual simulator outcome; the app labels it accordingly. To use real Bedrock with an authenticated, permitted AWS profile:
 
-The assistant is automatic on committed intake, not on every render or edit. Tours, switching modes and ordinary edits do not invoke the model. Analysis errors and limits remain visible; a timeout is never replaced by a fake successful response.
+```sh
+AWS_PROFILE=revenuerescue AWS_REGION=us-east-2 RELAY_AI_ENABLED=true npm run dev
+```
 
-## Limits
+The profile name may be changed for another authorized local profile. No credentials are included in the repository or release package.
 
-The demonstration allows 10 analyses per two-hour anonymous session, 100 per UTC day globally, and 500 over the deployment lifetime. Each analysis permits at most two model calls. Failed attempts consume their reservation; an identical retry reuses the stored job. The limits control inference work, not all hosting costs.
+Validation commands are `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build`. After building, `npm start` runs the local production server with its worker enabled.
 
-Guest records are not authenticated customer accounts. Use fictional details only. Real email, phone, speech recognition, customer authentication, calendar synchronization and production payment collection are deferred. The available billing Beta does not authorize production customer charges.
+## Scope and data
+
+- Each guest session has a separate fictional tenant. This is not production organization membership or a customer login system.
+- Local records persist in SQLite; hosted records use DynamoDB. Refreshing the page does not reset the operational state.
+- Use fictional details only. A phone number is required, but it does not grant calling or recording consent.
+- No real outbound telephone calls, messages, or payments are made. Amazon Connect, production identity, and the official test billing integration are not enabled.
+- The previous commercial RevenueRescue interface is archived. The active product contains nonprofit volunteer operations only.
+
+Readable application code is in `apps/revenuerescue`. The integrated Relay package is documented in [integrated/README.md](../integrated/README.md). Product work stays on separate feature branches; `main` remains reserved for event information.

@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 const destination = resolve(".local/lambda");
 await mkdir(destination, { recursive: true });
 await build({
-  entryPoints: ["src/server/handler.ts"],
+  entryPoints: ["src/relay/server/lambda.ts"],
   bundle: true,
   platform: "node",
   target: "node22",

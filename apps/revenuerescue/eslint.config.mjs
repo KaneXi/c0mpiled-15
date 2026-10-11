@@ -10,6 +10,8 @@ export default tseslint.config(
       "node_modules/**",
       "next-env.d.ts",
       "local/**",
+      ".local/**",
+      ".data/**",
     ],
   },
   js.configs.recommended,
