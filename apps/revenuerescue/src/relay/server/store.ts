@@ -332,21 +332,30 @@ export class DynamoRelayStore implements RelayStore {
     throw new ServiceError("The workspace is busy.", 409, "CONFLICT");
   }
   async tenants() {
-    const r = await this.db.send(
-      new ScanCommand({
-        TableName: this.table,
-        FilterExpression: "begins_with(PK, :prefix) AND expiresAt > :now",
-        ExpressionAttributeValues: {
-          ":prefix": "RELAY#TENANT#",
-          ":now": nowSeconds(),
-        },
-        ProjectionExpression: "PK",
-        Limit: 500,
-      }),
-    );
-    return (r.Items ?? [])
-      .map((r) => (r.PK as string).slice("RELAY#TENANT#".length))
-      .slice(0, 100);
+    const tenants: string[] = [];
+    let cursor: Record<string, unknown> | undefined;
+    do {
+      const page = await this.db.send(
+        new ScanCommand({
+          TableName: this.table,
+          FilterExpression: "begins_with(PK, :prefix) AND expiresAt > :now",
+          ExpressionAttributeValues: {
+            ":prefix": "RELAY#TENANT#",
+            ":now": nowSeconds(),
+          },
+          ProjectionExpression: "PK",
+          Limit: 500,
+          ExclusiveStartKey: cursor,
+        }),
+      );
+      tenants.push(
+        ...(page.Items ?? []).map((item) =>
+          (item.PK as string).slice("RELAY#TENANT#".length),
+        ),
+      );
+      cursor = page.LastEvaluatedKey;
+    } while (cursor && tenants.length < 100);
+    return tenants.slice(0, 100);
   }
   async reserveAnalysis(tenantId: string) {
     try {

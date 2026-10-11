@@ -46,3 +46,5 @@ Earlier fenced-JSON and nullable-clarification failures were repaired and supers
 | Official AWS App Monetization | No verified organizer skill integration, metering/entitlements or test checkout. The private beta requires organizer-authorized access and its documented test Stripe Connect flow. Only credit-card test payments are in scope; no direct Stripe checkout, real payments or production billing claims. Keep all private onboarding documents and registry tokens outside Git. |
 
 The owner selected a fast core release. Real calls, persistent customer accounts, official beta billing and cost-anomaly notification remain separate unfinished deliverables; the release must not be represented as completing the full manual.
+
+The EventBridge background worker was separately verified at 20:22 UTC: a future check-in started after its due time with no subsequent browser mutation. Cloud tenant discovery follows DynamoDB pagination so filtered or expired records do not hide later workspaces.

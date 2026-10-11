@@ -1,7 +1,7 @@
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { basename, relative, resolve, sep } from "node:path";
 const root = resolve("../.."),
   destination = resolve(root, "integrated"),
   staging = resolve(".local/relay-release");
@@ -19,7 +19,20 @@ const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], {
 await rm(staging, { recursive: true, force: true });
 await mkdir(`${staging}/server`, { recursive: true });
 await mkdir(destination, { recursive: true });
-await cp(".next/standalone", `${staging}/server`, { recursive: true });
+const privateNames = new Set([".data", ".local", ".aws", ".npmrc"]);
+await cp(".next/standalone", `${staging}/server`, {
+  recursive: true,
+  filter: (source) => {
+    const parts = relative(resolve(".next/standalone"), resolve(source)).split(
+      sep,
+    );
+    return (
+      !parts.some(
+        (part) => privateNames.has(part) || part.startsWith(".env"),
+      ) && !/\.(sqlite|db)(-|$)/.test(basename(source))
+    );
+  },
+});
 await cp("public", `${staging}/server/public`, { recursive: true });
 await cp(".next/static", `${staging}/server/.next/static`, { recursive: true });
 await cp(".local/relay-web", `${staging}/website`, { recursive: true });

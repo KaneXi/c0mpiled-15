@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { SqliteRelayStore } from "../src/relay/server/store";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { DynamoRelayStore, SqliteRelayStore } from "../src/relay/server/store";
 let stores: SqliteRelayStore[] = [];
 let dirs: string[] = [];
 function fixture() {
@@ -14,6 +15,7 @@ function fixture() {
   return { store, path };
 }
 afterEach(() => {
+  vi.restoreAllMocks();
   stores.forEach((s) => s.close());
   dirs.forEach((d) => rmSync(d, { recursive: true, force: true }));
   stores = [];
@@ -104,5 +106,25 @@ describe("durable manager workspace", () => {
     await expect(
       store.reserveAnalysis(b.session.tenantId),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("cloud worker discovery", () => {
+  it("continues after a filtered page so active workspaces are not silently skipped", async () => {
+    const send = vi
+      .spyOn(DynamoDBDocumentClient.prototype, "send")
+      .mockResolvedValueOnce({
+        Items: [],
+        LastEvaluatedKey: { PK: "expired-record" },
+      } as never)
+      .mockResolvedValueOnce({
+        Items: [{ PK: "RELAY#TENANT#active" }],
+      } as never);
+    const store = new DynamoRelayStore("test-table");
+    expect(await store.tenants()).toEqual(["active"]);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[1][0].input).toMatchObject({
+      ExclusiveStartKey: { PK: "expired-record" },
+    });
   });
 });

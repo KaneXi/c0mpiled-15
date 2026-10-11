@@ -20,9 +20,10 @@ No production phone call or payment is represented as completed. No change has b
 
 ## Verified checks
 
-- 130 automated tests across nine suites, plus three UI API boundary tests: passed.
+- 131 automated tests across nine suites, plus three UI API boundary tests: passed.
 - TypeScript, ESLint, production Next.js build, website bundle and Lambda bundle: passed.
 - Public end-to-end smoke: passed on 2026-10-11 at 20:19 UTC, with three real Bedrock interpretations, manager approval, pause/resume, one replacement, stopped outreach, idempotent replay and persistent DynamoDB readback.
+- Independent scheduled worker: verified on the public deployment at 20:22 UTC. A future check-in started after publication without any further mutation request.
 - UI interaction and appearance have not been visually verified because browser policy checks blocked access.
 
 Implementation is delivered on a feature branch for review. No claim of a reviewed merge is made. The full operating manual is not complete while the external integrations above remain absent.
