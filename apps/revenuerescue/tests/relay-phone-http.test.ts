@@ -37,6 +37,45 @@ const post = (body: unknown) =>
       body: JSON.stringify(body),
     }),
   );
+it("requires the manager code to add a real volunteer and never dispatches a call", async () => {
+  const fresh = await getStore().createSession();
+  const tenant = fresh.session.tenantId;
+  process.env.RELAY_PUBLIC_TEST_TENANT = tenant;
+  await getStore().mutate(tenant, undefined, undefined, (state) => ({
+    ...state,
+    paused: true,
+    phoneTest: {
+      mode: "outbound",
+      stage: "stopped",
+      detail: "Ready",
+      updatedAt: new Date().toISOString(),
+      events: [],
+    },
+  }));
+  const volunteer = {
+    name: "New Recording Volunteer",
+    phone: "+12025550187",
+    roles: ["welcome"],
+    preferredRoles: [],
+    availability: [],
+    timezone: "America/New_York",
+    quietHours: { start: 22, end: 8 },
+    callingConsent: true,
+    recordingConsent: false,
+    optedOut: false,
+    active: true,
+  };
+  const request = { phoneTestAction: "save_volunteer", code, volunteer };
+  const before = (await getStore().read(tenant)).volunteers.length;
+  expect((await post({ ...request, code: "wrong" })).status).toBe(403);
+  expect((await getStore().read(tenant)).volunteers).toHaveLength(before);
+  expect((await post(request)).status).toBe(200);
+  const saved = await getStore().read(tenant);
+  expect(saved.volunteers.at(-1)?.name).toBe(volunteer.name);
+  expect(saved.volunteers.at(-1)?.callingApprovedByManager).toBe(true);
+  expect(saved.calls).toEqual([]);
+  expect(wakeVoiceWorker).not.toHaveBeenCalled();
+});
 it("requires the presenter code and explicit call authorization; writes remain scheduled until AWS runs", async () => {
   const fresh = await getStore().createSession();
   const tenant = fresh.session.tenantId;

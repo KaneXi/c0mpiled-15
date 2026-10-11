@@ -1,4 +1,5 @@
 import { wakeVoiceWorker } from "./dispatch";
+import { addVoiceVolunteer, voiceParticipantAllowed } from "./participants";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { getStore, ServiceError } from "../server/store";
 import { z } from "zod";
@@ -119,15 +120,9 @@ export function preparePhoneTest(
   const people = [originalId, replacementId].map((id) =>
     state.volunteers.find((v) => v.id === id),
   );
-  const allowed: string[] = JSON.parse(
-    process.env.VOICE_ALLOWED_PHONES || "[]",
-  );
   if (
     originalId === replacementId ||
-    people.some(
-      (p) =>
-        !p || !allowed.includes(p.phone) || !p.callingConsent || p.optedOut,
-    )
+    people.some((p) => !p || !voiceParticipantAllowed(p))
   )
     throw new ServiceError(
       "Select two distinct consenting participants from the authorized test roster.",
@@ -235,9 +230,10 @@ export async function controlPhoneTest(input: unknown) {
           "scheduledFor",
           "setup",
           "authorizeCalls",
+          "volunteer",
         ].includes(k),
     ) ||
-    !["prepare", "schedule", "start_now", "stop"].includes(
+    !["prepare", "schedule", "start_now", "stop", "save_volunteer"].includes(
       String(value.phoneTestAction),
     ) ||
     typeof value.code !== "string"
@@ -261,6 +257,8 @@ export async function controlPhoneTest(input: unknown) {
     if (state.phoneTest?.mode !== "outbound")
       throw new ServiceError("This is not an outbound phone demo.");
     const now = new Date().toISOString();
+    if (value.phoneTestAction === "save_volunteer")
+      return addVoiceVolunteer(state, value.volunteer, now);
     if (value.phoneTestAction === "prepare")
       return preparePhoneTest(state, value.setup, now);
     if (

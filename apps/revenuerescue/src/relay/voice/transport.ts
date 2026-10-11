@@ -10,6 +10,7 @@ import { completeCall } from "../engine";
 import { advanceOutbound } from "./workflow";
 import { openingPrompt } from "./prompts";
 import { prepareCaller, callerReady, releaseCaller } from "./number";
+import { voiceParticipantAllowed } from "./participants";
 const connect = new ConnectClient({ region: "us-east-1", maxAttempts: 1 });
 export async function tickOutbound() {
   const tenant = process.env.RELAY_PUBLIC_TEST_TENANT!;
@@ -132,14 +133,7 @@ export async function tickOutbound() {
   );
   if (!call) return;
   const person = state.volunteers.find((v) => v.id === call.volunteerId)!;
-  const allowed: string[] = JSON.parse(
-    process.env.VOICE_ALLOWED_PHONES || "[]",
-  );
-  if (
-    !allowed.includes(person.phone) ||
-    !person.callingConsent ||
-    person.optedOut
-  )
+  if (!voiceParticipantAllowed(person))
     throw new Error("Destination is not on the consented test allowlist");
   const shift = state.shifts.find((s) => s.id === call.shiftId)!;
   const original = state.calls.find(

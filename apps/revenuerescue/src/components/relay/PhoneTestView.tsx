@@ -35,6 +35,7 @@ export function PhoneTestView({
   const participants = state.volunteers.filter(
     (person) =>
       person.id !== state.managerVolunteerId &&
+      person.active &&
       person.callingConsent &&
       !person.optedOut,
   );
@@ -273,7 +274,7 @@ export function PhoneTestView({
         >
           <h2 id="outbound-controls">Create a task</h2>
           <p>
-            Parag and Kane are already in your roster. The first person and
+            Choose from your saved volunteers. The first person and
             their replacement are selected below; choose the shift hours and
             save.
           </p>

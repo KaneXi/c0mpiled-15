@@ -28,6 +28,7 @@ import type {
   RelayView,
   Shift,
   Volunteer,
+  VolunteerInput,
 } from "@/relay/contracts";
 import { RelayApiError, relayApi } from "./api";
 import { ShiftEditor, VolunteerEditor, type SendCommand } from "./Editors";
@@ -763,6 +764,51 @@ export default function RelayDashboard() {
     }
   };
 
+  const saveLiveVolunteer = async (volunteer: VolunteerInput, code: string) => {
+    if (commandPending.current || help) return false;
+    commandPending.current = true;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/relay/command", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(35_000),
+        body: JSON.stringify({
+          phoneTestAction: "save_volunteer",
+          code,
+          volunteer,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok)
+        throw new Error(
+          result?.error || "Could not save the volunteer. Please try again.",
+        );
+      setNotice(
+        `${volunteer.name} was added. Choose them in Create task to arrange a call.`,
+      );
+      try {
+        update(await relayApi.read());
+      } catch {
+        setConnection("Volunteer saved. Reconnecting to refresh the roster…");
+      }
+      return true;
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Could not save the volunteer.",
+      );
+      return false;
+    } finally {
+      commandPending.current = false;
+      setBusy(false);
+    }
+  };
+
   if (!view)
     return (
       <main className={s.loading}>
@@ -1188,7 +1234,7 @@ export default function RelayDashboard() {
               </h2>
               <button
                 className={s.primary}
-                disabled={busy || live}
+                disabled={busy}
                 onClick={() => setEditor({ type: "volunteer" })}
               >
                 <Plus size={17} /> Add volunteer
@@ -1201,6 +1247,7 @@ export default function RelayDashboard() {
                 send={send}
                 busy={busy}
                 onClose={() => setEditor(null)}
+                onSaveLive={live ? saveLiveVolunteer : undefined}
               />
             )}
             <div className={s.volunteerList}>

@@ -80,3 +80,9 @@ The owner requested removal of the live run and speech-analysis caps for recordi
 Unlimited analysis applies only to the exact privately configured live tenant. Guest tenant limits remain unchanged. This removes application usage caps, not AWS account limits or charges. Each sequence still calls only the existing two consented, allowlisted participants, requires fresh manager authorization and follows the existing service window. Deployment does not create tasks, arm runs, or start calls.
 
 Completed runs no longer lock the authorization checkbox. Save a fresh task before starting another sequence, then explicitly authorize calls. Disabled start buttons explain the required next action. Editing participants, shift hours or inquiry time clears previous consent. The original dashboard UI is preserved.
+
+## Add a live volunteer from the existing dashboard
+
+The Volunteers tab now enables Add volunteer for the live workspace. The manager enters the private code, name, US phone number, roles, availability and explicit calling consent. The authenticated save adds a durable shared roster record; duplicate normalized numbers and unsupported country codes are rejected. Saving does not prepare a task, schedule a run or start a call. Stop an active inquiry before adding someone.
+
+A server-written calling approval permits newly registered consenting participants through both task validation and the actual outbound dispatcher. Guests cannot submit that approval field. Inactive or opted-out participants remain blocked. The next task can select a newly added original or replacement; outreach honors the explicitly selected replacement even when additional volunteers are eligible. Public phone numbers remain masked, and live editing stays disabled to avoid submitting masked numbers as real contacts.

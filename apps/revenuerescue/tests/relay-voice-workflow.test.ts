@@ -51,6 +51,25 @@ function finish(state: RelayState, outcome: CallOutcome) {
   return next.state;
 }
 describe("bounded real-call orchestration", () => {
+  it("calls the explicitly selected replacement even when other volunteers are eligible", () => {
+    let state = advanceOutbound(initial(), now);
+    const original = state.calls[0].volunteerId;
+    const eligible = state.volunteers.find(
+      (person) =>
+        person.id !== original && person.id !== state.managerVolunteerId,
+    )!;
+    state.volunteers.push({
+      ...eligible,
+      id: "selected-replacement",
+      name: "Selected Replacement",
+      phone: "+12025550177",
+    });
+    state.phoneTest!.replacementVolunteerId = "selected-replacement";
+    state = finish(state, "declined");
+    state = advanceOutbound(state, now);
+    expect(state.calls.at(-1)?.volunteerId).toBe("selected-replacement");
+    expect(state.calls).toHaveLength(2);
+  });
   it("assigns the saved shift after a natural acceptance despite model timezone errors", async () => {
     let state = advanceOutbound(initial(), now);
     state = finish(state, "declined");
