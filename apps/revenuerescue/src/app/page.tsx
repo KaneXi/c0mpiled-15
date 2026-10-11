@@ -18,7 +18,7 @@ export default function Welcome() {
           </span>
           RevenueRescue<span className={styles.brandDot}>.</span>
         </Link>
-        <span className={styles.demoLabel}>Interactive demo</span>
+        <span className={styles.demoLabel}>Business + Volunteers</span>
       </header>
       <section className={styles.hero} aria-labelledby="welcome-heading">
         <div className={styles.intro}>
@@ -28,14 +28,14 @@ export default function Welcome() {
             <span>One clear next step.</span>
           </h1>
           <p className={styles.description}>
-            Keep track of customer requests, find the right time, and follow up
-            with a little more confidence.
+            A new request comes in. Your AWS assistant checks the sample
+            schedule and brings you a clear next step.
           </p>
           <Link href="/demo" className={styles.cta}>
             Try the demo <ArrowRight size={21} />
           </Link>
           <p className={styles.finePrint}>
-            No account needed. Just a fictional shop to explore.
+            No account needed. Explore a sample shop or volunteer team.
           </p>
           <div className={styles.footnote}>
             <Play size={16} fill="currentColor" />
@@ -94,19 +94,22 @@ export default function Welcome() {
         <p>A small workspace for the work that matters.</p>
         <div>
           <span>
-            <MessageCircle size={18} /> Follow up with customers
+            <MessageCircle size={18} /> Understand each request
           </span>
           <span>
             <CalendarDays size={18} /> Arrange a new time
           </span>
           <span>
-            <Check size={18} /> Record what happened
+            <Check size={18} /> Coordinate volunteers
           </span>
         </div>
       </section>
       <footer className={styles.footer}>
         <span>Built for a busy front desk.</span>
-        <span>Fictional data. No messages, calls, or payments.</span>
+        <span>
+          Fictional records. Real analysis online. No external messages or
+          payments.
+        </span>
       </footer>
     </main>
   );

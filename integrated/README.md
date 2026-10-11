@@ -1,9 +1,17 @@
-# Integrated demonstration
+# Integrated deliveries
 
-Open `revenuerescue-demo.html` in a current browser. The file includes the interface, application logic, and fonts, and works without an internet connection. No account is needed.
+The primary product is the [online AWS application](https://rescue.kanexi.me).
 
-All examples are fictional. Actions change only the current page session. No customer is contacted and no payment is processed. Refreshing the page starts over.
+## Offline preview
 
-The readable source is in `../apps/revenuerescue/`. From that directory, run `npm ci` and `npm run bundle:demo` to regenerate this file. Do not edit the integrated HTML manually. `SHA256SUMS` identifies the generated artifact.
+Open `revenuerescue-demo.html` in a current browser. This secondary preview includes the interface, fictional scheduling logic and local fonts. The live AWS assistant is explicitly unavailable; no analysis or provider request is made. Navigation to the online product is an explicit link.
 
-The file bundles React, React DOM, Luxon, Lucide icons, and DM Sans. Their license notices are included in the generated JavaScript or the readable app’s dependency packages; the DM Sans font license is at `../apps/revenuerescue/public/fonts/OFL.txt`.
+All examples are fictional. Refreshing resets operational records. No external message or payment is processed.
+
+## AWS release package
+
+`aws-release.zip` contains the generated static website, bundled Lambda code, infrastructure template and release manifest. It contains no AWS credentials, origin-verification secret, guest session or private onboarding material. The readable source remains in `../apps/revenuerescue/` and `../infra/`. Deployment instructions are in `../docs/deployment.md`.
+
+Regenerate from the app directory using `npm run build`, `npm run build:lambda`, `npm run bundle:demo` and `npm run package:release`. Do not edit generated artifacts manually. `SHA256SUMS` identifies the generated deliverables.
+
+The offline file bundles React, React DOM, Luxon, Lucide and DM Sans. License notices are retained in bundled code and the readable packages. DM Sans licensing is in the app's `public/fonts/OFL.txt`.

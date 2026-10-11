@@ -1,64 +1,27 @@
-# Guest demo guide
+# Guest demonstration guide
 
-RevenueRescue helps illustrate one clear shop workflow: **read the inquiry, prepare a follow-up, approve it, confirm a visit, and record the outcome**. This version uses a fictional salon named Juniper Studio. No account is required.
+The primary delivery is the public AWS-backed website. The integrated HTML is a secondary offline preview. Both use fictional business and volunteer records; refreshing resets operational records.
 
-## Which version to open
+## Business
 
-The readable application lives in `apps/revenuerescue/`. Its README contains the local development and verification commands. The generated browser-ready version is `integrated/revenuerescue-demo.html`; open that file in a browser once it has been generated. It is a packaged guest interface, not a connection to a live customer system.
+Create a fictional inquiry or simulate an incoming request. The AWS assistant analyzes it automatically, checks the available sample schedule, and posts an internal notification. Confirm a current proposed time to update the sample booking. The original booking survives an invalid replacement.
 
-The original donation story wall and HeartOps volunteer interface remain in `demos/` as historical visual prototypes. They are not additional features of the current salon demo.
+The separate sample follow-up flow is draft, edit, approve, then simulate sending. Editing invalidates approval. No external message is sent. Outcomes and sales amounts are manually reported demo values, not payment evidence.
 
-## A short demonstration
+## Volunteers
 
-| Step | What to do | What it demonstrates |
-| --- | --- | --- |
-| 1 | Open the guest workspace and select Lena in **Today**. | A manager sees the request and a useful next action. |
-| 2 | Prepare the sample draft, edit it, approve it, and simulate sending. | The manager controls the exact message. Editing removes approval; a second sample send is blocked. |
-| 3 | Open Jamie in **Appointments** and choose **Change time**. Select an available replacement and confirm it. | One shared appointment schedule prevents overlap. The old time stays reserved until the change succeeds. |
-| 4 | In **Customers**, choose **Try a voice example**. Review the transcript and uncertain details before adding the inquiry. | Different phrases, corrections, and ambiguity need interpretation and clarification. The demonstration does not claim live speech recognition. |
-| 5 | Record a sample sale and view **Results**. | Follow-ups, confirmed appointments, and staff-reported sales remain different measures. |
-| 6 | Reset the demo. | The original fictional examples are restored. Refreshing the page also discards changes. |
+Switch to Volunteers to register interest, record availability, and coordinate a sample shift. Confirming an assignment checks role, availability, remaining places and overlap. Moving a volunteer checks the replacement before changing the original. Completion is possible only after a shift has ended on the fixed demo clock. Only recorded completed minutes contribute to hours.
 
-Use **Show me how** at any point for the in-page walkthrough. Use fictional names and `.test` email addresses when adding your own examples.
+A voice example creates an unassigned registration with unknown availability and contact permission off. Its text can be analyzed by AWS outside the guided tour, but it is not a real recording or transcription.
 
-## Rules worth trying
+## What makes the assistant real
 
-- Try sending before approval. The action is refused.
-- Approve a draft, then change its wording. It must be approved again.
-- Open Alex's inquiry. A local draft can be prepared and edited, but approval and simulated sending are blocked because contact permission is missing.
-- Add a voice or walk-in request with no email and permission off. The request can be reviewed, but no follow-up can be sent.
-- Choose a time already occupied by the same stylist. It is unavailable. The other stylist has separate capacity.
-- Move a visit to an available time. The same appointment changes; it is not duplicated.
-- Cancel a confirmed visit. Its capacity becomes available, and a booked inquiry returns to open.
-- Try closing a customer without a sale while their appointment remains confirmed. Cancel the appointment first.
-- Change a reported sale amount. Results use the current record rather than repeatedly adding the old amount.
+The public backend uses Amazon Bedrock Nova Lite with read-only business availability or volunteer shift tools. It requires a real tool result before accepting a proposal, and reconstructs actionable values from server-issued options. It cannot book, assign, complete, approve, send or charge on its own. The notification shows the actual provider and tool provenance.
 
-The fixed sample week is October 12–16, 2026, 9 AM–5 PM, New York time. Dates are intentionally anchored for a repeatable demonstration. Adjacent appointments may meet exactly at their start/end boundary; overlapping appointments for the same stylist are rejected.
+The assistant is automatic on committed intake, not on every render or edit. Tours, switching modes and ordinary edits do not invoke the model. Analysis errors and limits remain visible; a timeout is never replaced by a fake successful response.
 
-## What is real in this version
+## Limits
 
-The interface, in-memory state transitions, editable sample messages, explicit approvals, shared appointment-capacity rules, and calculated sample results work locally. The sample drafting step uses a template. Voice content consists of fictional, prewritten examples.
+The demonstration allows 10 analyses per two-hour anonymous session, 100 per UTC day globally, and 500 over the deployment lifetime. Each analysis permits at most two model calls. Failed attempts consume their reservation; an identical retry reuses the stored job. The limits control inference work, not all hosting costs.
 
-No actual customer messages or calls are sent. No microphone recording, transcription, AWS service, AI model, real authentication, shared database, checkout, or payment processor is connected in this guest interface. “Sale recorded” means a staff-reported sample amount. It does not mean money was collected or independently verified.
-
-All changes last only for the current page session. Do not enter personal or confidential customer information. This is a workflow demonstration, not an operational customer record system.
-
-## Verification commands
-
-Run from `apps/revenuerescue/`:
-
-```sh
-npm ci
-npm run typecheck
-npm run lint
-npm test
-npm run build
-npm run bundle:demo
-npm run dev
-```
-
-Automated checks should be paired with a desktop/mobile browser walkthrough of both the readable application and the generated integrated file. A successful local check does not establish live AWS, email, telephone, or payment readiness.
-
-## Repository delivery
-
-Keep code, documentation, comments, and commit messages in English. Deliver on the private `codex/revenuerescue-product` branch, with readable application code, integrated output, historical demos, and documentation in separate directories. Leave `main` and its event brief unchanged. Do not upload private onboarding documents, model review transcripts, credentials, or customer records.
+Guest records are not authenticated customer accounts. Use fictional details only. Real email, phone, speech recognition, customer authentication, calendar synchronization and production payment collection are deferred. The available billing Beta does not authorize production customer charges.

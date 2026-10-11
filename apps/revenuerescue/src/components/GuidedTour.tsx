@@ -2,81 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { Screen } from "../domain/demo-types";
+import type { DemoMode } from "../domain/demo-types";
+import { BUSINESS_TOUR_KEY, tourCompletionKey, tourSteps, type TourStepId, type WorkspaceScreen } from "../demo/variants";
+export type { TourStepId } from "../demo/variants";
 import styles from "./DemoTools.module.css";
 
-export type TourStepId =
-  "today" | "add" | "voice" | "review" | "appointments" | "results";
-export const GUEST_TOUR_COMPLETION_KEY =
-  "revenuerescue:guest-demo:tour-completed:v1";
+export const GUEST_TOUR_COMPLETION_KEY = BUSINESS_TOUR_KEY;
 
 export interface GuidedTourProps {
   open: boolean;
+  mode?: DemoMode;
   onClose: (completed: boolean) => void;
-  onNavigate: (screen: Screen) => void;
+  onNavigate: (screen: WorkspaceScreen) => void;
   onStepChange?: (step: TourStepId) => void;
 }
-
-const steps: {
-  id: TourStepId;
-  target: string;
-  screen: Screen;
-  title: string;
-  text: string;
-}[] = [
-  {
-    id: "today",
-    target: "today",
-    screen: "today",
-    title: "Start with the next customer.",
-    text: "Today brings the inquiries that need your attention into one place. This is a sample shop, so you can try things freely.",
-  },
-  {
-    id: "add",
-    target: "add",
-    screen: "customers",
-    title: "Keep the important details.",
-    text: "Add a customer's name, service, and request. Contact details and permission to follow up are separate things to check.",
-  },
-  {
-    id: "voice",
-    target: "voice",
-    screen: "customers",
-    title: "Check the words before acting.",
-    text: "Choose a prepared voice example. Compare the original words with the request and notice anything that still needs confirmation.",
-  },
-  {
-    id: "review",
-    target: "review",
-    screen: "today",
-    title: "You decide what gets sent.",
-    text: "Review and edit a follow-up, then approve its exact wording. Sending is a separate action and is simulated in this demo.",
-  },
-  {
-    id: "appointments",
-    target: "appointments",
-    screen: "appointments",
-    title: "Give every appointment a place.",
-    text: "Choose a customer, stylist, and available time. Check for a clash before booking or moving an appointment.",
-  },
-  {
-    id: "results",
-    target: "results",
-    screen: "results",
-    title: "Record what actually happened.",
-    text: "Record booked, won, or lost outcomes. Results reflect the shop's entries, not verified payments. Use Show me how to replay this tour.",
-  },
-];
 
 interface Placement {
   card: CSSProperties;
   highlight: CSSProperties | null;
 }
 
-function rememberTour(completed: boolean) {
+function rememberTour(completed: boolean, mode: DemoMode) {
   try {
     window.localStorage.setItem(
-      GUEST_TOUR_COMPLETION_KEY,
+      tourCompletionKey(mode),
       completed ? "true" : "dismissed",
     );
   } catch {
@@ -86,6 +35,7 @@ function rememberTour(completed: boolean) {
 
 export function GuidedTour({
   open,
+  mode = "business",
   onClose,
   onNavigate,
   onStepChange,
@@ -98,14 +48,15 @@ export function GuidedTour({
   const cardRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const callbacks = useRef({ onClose, onNavigate, onStepChange });
-  const step = steps[stepIndex];
+  const steps = tourSteps(mode);
+  const step = steps[Math.min(stepIndex, steps.length - 1)];
 
   useEffect(() => {
     callbacks.current = { onClose, onNavigate, onStepChange };
   }, [onClose, onNavigate, onStepChange]);
 
   function close(completed: boolean) {
-    rememberTour(completed);
+    rememberTour(completed, mode);
     callbacks.current.onClose(completed);
   }
 
@@ -121,7 +72,7 @@ export function GuidedTour({
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        rememberTour(false);
+        rememberTour(false, mode);
         callbacks.current.onClose(false);
       }
     }
@@ -131,7 +82,7 @@ export function GuidedTour({
       if (previousFocus?.isConnected)
         previousFocus.focus({ preventScroll: true });
     };
-  }, [open]);
+  }, [open, mode]);
 
   useEffect(() => {
     if (!open) return;

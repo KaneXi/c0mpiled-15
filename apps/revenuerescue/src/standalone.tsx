@@ -15,7 +15,28 @@ function Standalone() {
     setDemo(path === "/demo");
     window.scrollTo(0, 0);
   }
-  return <div onClick={navigate}>{demo ? <DemoApp /> : <Welcome />}</div>;
+  return (
+    <div onClick={navigate}>
+      <div
+        role="note"
+        style={{
+          padding: "12px 20px",
+          background: "#293c2d",
+          color: "white",
+          fontSize: 13,
+        }}
+      >
+        Offline preview — live AWS analysis is unavailable in this file.{" "}
+        <a
+          href="https://rescue.kanexi.me"
+          style={{ color: "white", textDecoration: "underline" }}
+        >
+          Open the online app
+        </a>
+      </div>
+      {demo ? <DemoApp liveAgentEnabled={false} /> : <Welcome />}
+    </div>
+  );
 }
 
 createRoot(document.getElementById("root")!).render(<Standalone />);

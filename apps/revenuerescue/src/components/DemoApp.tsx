@@ -28,24 +28,34 @@ import {
 import {
   applyAction,
   availableSlots,
-  createInitialState,
   DEMO_TODAY,
   formatDate,
   formatTime,
 } from "@/demo/model";
 import type {
   ActionResult,
+  DemoMode,
+  VolunteerAction,
+  VolunteerActionResult,
+  VolunteerScreen,
+  WorkspaceAction,
+  WorkspaceActionResult,
+  WorkspaceState,
   Appointment,
   DemoAction,
   DemoState,
   Inquiry,
-  Screen,
   VoiceExample,
 } from "@/domain/demo-types";
-import { GuidedTour, GUEST_TOUR_COMPLETION_KEY } from "./GuidedTour";
+import { GuidedTour } from "./GuidedTour";
+import VolunteerWorkspace from "./VolunteerWorkspace";
+import { createInitialWorkspaceState, applyWorkspaceAction } from "../demo/workspace-model";
+import { tourCompletionKey, type TourStepId, type WorkspaceScreen } from "../demo/variants";
+import { AgentNotifications, type AgentSnapshot, type AgentIntakeEvent, type AgentConfirmationRequest } from "./AgentNotifications";
+import { canonicalSerialize, projectAgentSnapshot } from "../domain/agent-types";
 import { VoiceExamples } from "./VoiceExamples";
 
-const navigation = [
+const businessNavigation = [
   { id: "today" as const, label: "Today", icon: Inbox },
   { id: "customers" as const, label: "Customers", icon: Users },
   { id: "appointments" as const, label: "Appointments", icon: CalendarDays },
@@ -72,15 +82,37 @@ const outcomeLabel = (inquiry: Inquiry) =>
               ? "Draft ready"
               : "Needs a reply";
 
-export default function DemoApp() {
-  const [result, dispatch] = useReducer(
-    (current: ActionResult, action: DemoAction): ActionResult =>
-      applyAction(current.state, action),
+function snapshotOf(workspace: WorkspaceState, mode: DemoMode): AgentSnapshot {
+  const version = workspace.versions[mode];
+  return mode === "business" ? { mode, state: workspace.business, ...version } : { mode, state: workspace.volunteers, ...version };
+}
+
+export default function DemoApp({ liveAgentEnabled = true }: { liveAgentEnabled?: boolean } = {}) {
+  const [result, rawDispatch] = useReducer(
+    (current: WorkspaceActionResult, action: WorkspaceAction): WorkspaceActionResult => applyWorkspaceAction(current.state, action),
     undefined,
-    (): ActionResult => ({ state: createInitialState(), message: "" }),
+    (): WorkspaceActionResult => ({ state: createInitialWorkspaceState(), message: "" }),
   );
-  const state = result.state;
-  const [screen, setScreen] = useState<Screen>("today");
+  const workspace = result.state;
+  const workspaceRef = useRef(workspace);
+  workspaceRef.current = workspace;
+  const mode = workspace.activeMode;
+  const state = workspace.business;
+  const snapshot = snapshotOf(workspace, mode);
+  const [pendingIntakes, setPendingIntakes] = useState<AgentIntakeEvent[]>([]);
+  const pendingIntakesRef = useRef<AgentIntakeEvent[]>([]);
+  const [queueNotice, setQueueNotice] = useState("");
+  const intakeRegistry = useRef(new Map<string, AgentIntakeEvent>());
+  const [confirmation, setConfirmation] = useState<{proposalId: string; status: "applied" | "rejected"; message: string} | null>(null);
+  const [screen, setScreen] = useState<WorkspaceScreen>("today");
+  const [tourStep, setTourStep] = useState<TourStepId | null>(null);
+  const navigation = mode === "business" ? businessNavigation : [
+    { id: "today" as const, label: "Today", icon: Inbox },
+    { id: "volunteers" as const, label: "Volunteers", icon: Users },
+    { id: "shifts" as const, label: "Shifts", icon: CalendarDays },
+    { id: "results" as const, label: "Results", icon: ArrowUpRight },
+  ];
+  const organizationName = mode === "business" ? "Juniper Studio" : "Community Table";
   const [selectedId, setSelectedId] = useState("");
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState(false);
@@ -90,12 +122,12 @@ export default function DemoApp() {
   useEffect(() => {
     try {
       setTourInvitation(
-        !window.localStorage.getItem(GUEST_TOUR_COMPLETION_KEY),
+        !window.localStorage.getItem(tourCompletionKey(mode)),
       );
     } catch {
       setTourInvitation(true);
     }
-  }, []);
+  }, [mode]);
   const [resetVersion, setResetVersion] = useState(0);
   const [confirmReset, setConfirmReset] = useState(false);
   const [scheduleTarget, setScheduleTarget] = useState<{
@@ -104,14 +136,14 @@ export default function DemoApp() {
   } | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const previousScreen = useRef(screen);
+  const previousScreen = useRef(`${mode}:${screen}`);
   useEffect(() => {
-    if (screen !== previousScreen.current && !tourOpen)
+    if (`${mode}:${screen}` !== previousScreen.current && !tourOpen)
       headingRef.current?.focus();
-    previousScreen.current = screen;
-  }, [screen, tourOpen]);
+    previousScreen.current = `${mode}:${screen}`;
+  }, [mode, screen, tourOpen]);
 
-  const navigate = (next: Screen) => {
+  const navigate = (next: WorkspaceScreen) => {
     setScreen(next);
     setSearch("");
     setAdding(false);
@@ -146,18 +178,76 @@ export default function DemoApp() {
   const scheduleAppointment = state.appointments.find(
     (appointment) => appointment.id === scheduleTarget?.appointmentId,
   );
-  const titles: Record<Screen, string> = {
-    today: "A clearer day starts here.",
-    customers: "A little care goes a long way.",
-    appointments: "Make room for the next visit.",
-    results: "See your follow-through.",
-  };
-  const descriptions: Record<Screen, string> = {
-    today: "A few thoughtful replies. A few more reasons to come back.",
-    customers: "Every request, conversation, and next step in one place.",
-    appointments: "Find a time that works. Confirm it when you’re ready.",
-    results: "The story behind your replies, appointments, and recorded sales.",
-  };
+  const titles: Partial<Record<WorkspaceScreen, string>> = mode === "business" ? {
+    today: "A clearer day starts here.", customers: "A little care goes a long way.", appointments: "Make room for the next visit.", results: "See your follow-through.",
+  } : { today: "Good people. A shared purpose.", volunteers: "Know the people behind the help.", shifts: "A place for everyone to contribute.", results: "See the time that made a difference." };
+  const descriptions: Partial<Record<WorkspaceScreen, string>> = mode === "business" ? {
+    today: "A few thoughtful replies. A few more reasons to come back.", customers: "Every request, conversation, and next step in one place.", appointments: "Find a time that works. Confirm it when you’re ready.", results: "The story behind your replies, appointments, and recorded sales.",
+  } : { today: "Turn a willingness to help into a clear next step.", volunteers: "Their interests, their availability, and the work they care about.", shifts: "Match people and open places, with every assignment confirmed.", results: "A truthful record of participation and completed volunteer time." };
+
+  function commit(action: WorkspaceAction): WorkspaceActionResult {
+    const next = applyWorkspaceAction(workspaceRef.current, action);
+    workspaceRef.current = next.state;
+    rawDispatch(action);
+    if (!next.error && action.type !== "SWITCH_MODE" && (action.action.type === "ADD_INQUIRY" || action.action.type === "REGISTER") && !tourOpen && liveAgentEnabled) {
+      const modeSnapshot = snapshotOf(next.state, action.mode);
+      const recordId = action.mode === "business" ? next.state.business.inquiries[0]?.id : next.state.volunteers.registrations[0]?.id;
+      if (recordId && pendingIntakesRef.current.length >= 10) {
+        setQueueNotice("The assistant queue is full. This request is saved for manual review; it will not be submitted automatically.");
+      } else if (recordId) {
+        const event: AgentIntakeEvent = { id: crypto.randomUUID(), mode: action.mode, recordId, revision: modeSnapshot.revision, generation: modeSnapshot.generation, snapshot: modeSnapshot };
+        intakeRegistry.current.set(event.id, event);
+        if (intakeRegistry.current.size > 50) { const oldest = intakeRegistry.current.keys().next().value; if (oldest) intakeRegistry.current.delete(oldest); }
+        pendingIntakesRef.current = [...pendingIntakesRef.current, event];
+        setPendingIntakes(pendingIntakesRef.current);
+        setQueueNotice("");
+      }
+    }
+    return next;
+  }
+  function dispatch(action: DemoAction): ActionResult {
+    const next = commit({ type: "BUSINESS_ACTION", mode: "business", action });
+    return { state: next.state.business, message: next.message, error: next.error };
+  }
+  function dispatchVolunteer(action: VolunteerAction): VolunteerActionResult {
+    const next = commit({ type: "VOLUNTEER_ACTION", mode: "volunteers", action });
+    return { state: next.state.volunteers, message: next.message, error: next.error };
+  }
+  function clearTransient() {
+    setSelectedId(""); setScheduleTarget(null); setCancelId(null); setAdding(false); setShowVoice(false); setSearch(""); setConfirmReset(false); setTourOpen(false); setTourStep(null); setConfirmation(null); setQueueNotice(""); setScreen("today");
+  }
+  function switchMode(nextMode: DemoMode) {
+    if (nextMode === mode) return;
+    commit({ type: "SWITCH_MODE", mode: nextMode });
+    clearTransient();
+  }
+  function simulateIncoming() {
+    if (tourOpen) return;
+    if (mode === "business") {
+      const next = dispatch({ type: "ADD_INQUIRY", inquiry: { name: "Avery Cole", email: "avery@example.test", service: "Cut & finish", receivedAt: `${DEMO_TODAY}T12:00:00-04:00`, notes: "Hi, I'm Avery. Could I have a 60-minute cut and finish with Maya on Tuesday, October 13 at 2 PM? Please check what is available.", estimatedValue: 65, outcome: "OPEN", contactPermission: false, source: "message", requestedTime: "Tuesday, October 13 at 2 PM with Maya" } });
+      if (!next.error) { setSelectedId(next.state.inquiries[0]?.id ?? ""); setScreen("today"); }
+    } else {
+      dispatchVolunteer({ type: "REGISTER", registration: { name: "Jordan Lane", email: "jordan@example.test", roleInterests: ["welcome"], availability: [{ start: "2026-10-13T10:00:00-04:00", end: "2026-10-13T12:00:00-04:00" }], notes: "I would like to welcome visitors on Tuesday, October 13. I am available from 10 AM to noon. Please check for a suitable shift.", contactPermission: false, source: "message" } });
+      setScreen("today");
+    }
+  }
+  async function confirmAgent(request: AgentConfirmationRequest) {
+    const reject = (message: string) => setConfirmation({ proposalId: request.proposalId, status: "rejected", message });
+    const current = workspaceRef.current;
+    const event = intakeRegistry.current.get(request.eventId);
+    if (!event || request.mode !== request.change.mode || current.activeMode !== request.mode || event.mode !== request.mode || event.generation !== request.generation || event.revision !== request.revision) { reject("This suggestion no longer belongs to the current request. Review the active workspace."); return; }
+    try {
+      const active = snapshotOf(current, request.mode);
+      if (active.revision !== request.revision || active.generation !== request.generation) { reject("The workspace has changed. Review the current schedule before confirming."); return; }
+      const projection = projectAgentSnapshot(active.mode, active.state, event.recordId);
+      const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalSerialize(projection)));
+      const currentDigest = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, "0")).join("");
+      if (currentDigest !== request.snapshotDigest) { reject("This suggestion no longer matches the request and schedule."); return; }
+      const expected = { revision: request.revision, generation: request.generation };
+      const next = commit(request.change.mode === "business" ? { type: "BUSINESS_ACTION", mode: "business", action: request.change.action, expected } : { type: "VOLUNTEER_ACTION", mode: "volunteers", action: request.change.action, expected });
+      setConfirmation({ proposalId: request.proposalId, status: next.error ? "rejected" : "applied", message: next.message });
+    } catch { reject("The suggestion could not be verified. Your schedule has not changed."); }
+  }
 
   function addVoice(example: VoiceExample) {
     dispatch({
@@ -179,16 +269,13 @@ export default function DemoApp() {
   }
 
   function reset() {
-    dispatch({ type: "RESET" });
-    setSelectedId("");
-    setScheduleTarget(null);
-    setCancelId(null);
-    setAdding(false);
-    setShowVoice(false);
-    setSearch("");
-    setConfirmReset(false);
-    setResetVersion((value) => value + 1);
-    setScreen("today");
+    if (mode === "business") dispatch({ type: "RESET" });
+    else dispatchVolunteer({ type: "RESET" });
+    pendingIntakesRef.current = pendingIntakesRef.current.filter(event => event.mode !== mode);
+    setPendingIntakes(pendingIntakesRef.current);
+    for (const [id, event] of intakeRegistry.current) if (event.mode === mode) intakeRegistry.current.delete(id);
+    clearTransient();
+    setResetVersion(value => value + 1);
   }
 
   return (
@@ -202,18 +289,19 @@ export default function DemoApp() {
             <Flower2 size={27} strokeWidth={1.6} />
           </span>
           <span>
-            Revenue<span className="brand-light">Rescue</span>
+            {mode === "business" ? <>Revenue<span className="brand-light">Rescue</span></> : <>HeartOps</>}
             <span className="brand-period">.</span>
           </span>
         </a>
         <div className="shop-switch">
-          <span className="shop-avatar">J</span>
+          <span className="shop-avatar">{mode === "business" ? "J" : "C"}</span>
           <div>
-            <strong>Juniper Studio</strong>
-            <span>Your sample salon</span>
+            <strong>{organizationName}</strong>
+            <span>{mode === "business" ? "Your sample salon" : "Your community group"}</span>
           </div>
           <MoreHorizontal size={17} aria-hidden="true" />
         </div>
+        <div className="mode-switch" role="group" aria-label="Choose a workspace"><button aria-pressed={mode === "business"} onClick={() => switchMode("business")}>Business</button><button aria-pressed={mode === "volunteers"} onClick={() => switchMode("volunteers")}>Volunteers</button></div>
         <nav className="workspace-nav" aria-label="Workspace">
           {navigation.map((item) => (
             <button
@@ -224,8 +312,8 @@ export default function DemoApp() {
             >
               <item.icon size={20} strokeWidth={1.7} />
               <span>{item.label}</span>
-              {item.id === "today" && waiting.length > 0 && (
-                <span className="nav-count">{waiting.length}</span>
+              {item.id === "today" && (mode === "business" ? waiting.length : workspace.volunteers.registrations.filter(person => person.status === "REGISTERED").length) > 0 && (
+                <span className="nav-count">{mode === "business" ? waiting.length : workspace.volunteers.registrations.filter(person => person.status === "REGISTERED").length}</span>
               )}
             </button>
           ))}
@@ -234,8 +322,7 @@ export default function DemoApp() {
           <div className="sidebar-note">
             <Flower2 size={24} strokeWidth={1.3} />
             <p>
-              Good service deserves
-              <br />a good follow-up.
+              {mode === "business" ? <>Good service deserves<br />a good follow-up.</> : <>Good people deserve<br />a clear way to help.</>}
             </p>
           </div>
           <button className="nav-item" onClick={() => setTourOpen(true)}>
@@ -262,7 +349,7 @@ export default function DemoApp() {
             <span className="status-dot" />
             <strong>Demo · Sample data</strong>
             <span className="banner-detail">
-              Explore freely. No messages, calls, or payments.
+              {liveAgentEnabled ? "Real AWS analysis. Fictional records. No external messages." : "Offline examples. Live AWS analysis unavailable."}
             </span>
           </div>
           <button className="text-button" onClick={() => setConfirmReset(true)}>
@@ -272,7 +359,7 @@ export default function DemoApp() {
         </div>
         <header className="workspace-topbar">
           <span>
-            Juniper Studio <ChevronRight size={14} />
+            {organizationName} <ChevronRight size={14} />
             {navigation.find((item) => item.id === screen)?.label}
           </span>
           <div>
@@ -290,7 +377,7 @@ export default function DemoApp() {
           >
             <div>
               <strong>Start fresh with the original examples?</strong>
-              <p>This removes your changes in this sample session.</p>
+              <p>This resets the {mode === "business" ? "business" : "volunteer"} examples only. The other workspace is preserved.</p>
             </div>
             <button
               className="button button-soft"
@@ -315,15 +402,18 @@ export default function DemoApp() {
             <button
               className="button button-primary"
               onClick={() => {
-                setScreen("customers");
+                setScreen(mode === "business" ? "customers" : "volunteers");
                 setAdding(true);
                 setShowVoice(false);
               }}
             >
               <Plus size={17} />
-              Add inquiry
+              {mode === "business" ? "Add inquiry" : "Register volunteer"}
             </button>
           </div>
+          <div className="incoming-trigger"><p>{liveAgentEnabled ? "Try an incoming request. The AWS assistant checks it and notifies you automatically." : "Practice with another fictional request. This offline copy does not call AWS."}</p><button className="button button-soft" disabled={tourOpen} onClick={simulateIncoming}><MessageSquare size={16} />Simulate incoming request</button></div>
+          <AgentNotifications liveAgentEnabled={liveAgentEnabled} snapshot={snapshot} pendingIntakes={tourOpen ? [] : pendingIntakes} onIntakeConsumed={id => { pendingIntakesRef.current = pendingIntakesRef.current.filter(event => event.id !== id); setPendingIntakes(pendingIntakesRef.current); }} onConfirmProposal={confirmAgent} confirmation={confirmation} />
+          {queueNotice && <p className="queue-notice" role="status">{queueNotice}</p>}
           <div
             className={`feedback${result.error ? " feedback-error" : ""}${result.message ? " has-message" : ""}`}
             role="status"
@@ -362,7 +452,7 @@ export default function DemoApp() {
                   setTourInvitation(false);
                   try {
                     window.localStorage.setItem(
-                      GUEST_TOUR_COMPLETION_KEY,
+                      tourCompletionKey(mode),
                       "dismissed",
                     );
                   } catch {
@@ -375,14 +465,13 @@ export default function DemoApp() {
             </div>
           )}
 
-          {adding && (
+          {mode === "business" && adding && (
             <AddInquiry
               key={`add-${resetVersion}`}
               onCancel={() => setAdding(false)}
               onAdd={(inquiry) => {
                 const action: DemoAction = { type: "ADD_INQUIRY", inquiry };
-                const preview = applyAction(state, action);
-                dispatch(action);
+                const preview = dispatch(action);
                 if (!preview.error) {
                   setAdding(false);
                   setSelectedId(preview.state.inquiries[0]?.id ?? "");
@@ -391,7 +480,7 @@ export default function DemoApp() {
             />
           )}
 
-          {screen === "today" && (
+          {mode === "business" && screen === "today" && (
             <>
               <div className="section-heading" data-tour="today">
                 <div>
@@ -512,7 +601,7 @@ export default function DemoApp() {
             </>
           )}
 
-          {screen === "customers" && (
+          {mode === "business" && screen === "customers" && (
             <section data-tour="customers">
               <div className="customer-toolbar">
                 <label className="search-field">
@@ -534,7 +623,7 @@ export default function DemoApp() {
               </div>
               {showVoice && (
                 <div className="voice-area" data-tour="voice">
-                  <VoiceExamples key={resetVersion} onAddInquiry={addVoice} />
+                  <VoiceExamples key={resetVersion} liveAgentEnabled={liveAgentEnabled} tourActive={tourOpen} onAddInquiry={addVoice} />
                 </div>
               )}
               <div className="inbox-layout customers-layout">
@@ -610,7 +699,7 @@ export default function DemoApp() {
             </section>
           )}
 
-          {screen === "appointments" && (
+          {mode === "business" && screen === "appointments" && (
             <section data-tour="appointments">
               <div className="appointment-intro">
                 <CalendarDays size={23} />
@@ -737,21 +826,27 @@ export default function DemoApp() {
             </section>
           )}
 
-          {screen === "results" && <Results state={state} />}
+          {mode === "business" && screen === "results" && <Results state={state} />}
+          {mode === "volunteers" && <VolunteerWorkspace key={`volunteers-${workspace.versions.volunteers.generation}`} state={workspace.volunteers} screen={screen as VolunteerScreen} dispatch={dispatchVolunteer} adding={adding} onAddingChange={setAdding} onNavigate={navigate} tourStep={tourStep} tourActive={tourOpen} liveAgentEnabled={liveAgentEnabled} />}
           <footer className="workspace-footer">
-            <span>Made for a more thoughtful follow-up.</span>
+            <span>{mode === "business" ? "Made for a more thoughtful follow-up." : "Making room for people to do good work."}</span>
             <span>Fictional examples · Changes reset on refresh</span>
           </footer>
         </main>
       </div>
       <GuidedTour
+        key={mode}
+        mode={mode}
         open={tourOpen}
         onClose={() => {
           setTourOpen(false);
           setTourInvitation(false);
+          setTourStep(null);
+          setAdding(false);
         }}
         onNavigate={(next) => setScreen(next)}
         onStepChange={(step) => {
+          setTourStep(step);
           if (step === "voice") setShowVoice(true);
           if (step === "add") setAdding(true);
           else setAdding(false);
