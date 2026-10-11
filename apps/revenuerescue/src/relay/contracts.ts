@@ -110,6 +110,7 @@ export const interpretationSchema = z
   .strict();
 export type Interpretation = z.infer<typeof interpretationSchema>;
 export interface Call {
+  shiftVersion?: number;
   id: string;
   shiftId: string;
   volunteerId: string;
