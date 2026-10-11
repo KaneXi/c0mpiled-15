@@ -29,6 +29,9 @@ vi.mock("../src/relay/providers/agent", () => ({
   createAgentProvider: () => ({ interpret: mock.interpret }),
 }));
 vi.mock("../src/relay/voice/transport", () => ({ tickOutbound: vi.fn() }));
+vi.mock("../src/relay/voice/verify", () => ({
+  verifyVoiceDecision: async (value: Interpretation) => value,
+}));
 import { handler } from "../src/relay/voice/handler";
 const now = "2026-10-11T21:00:00.000Z";
 beforeEach(() => {

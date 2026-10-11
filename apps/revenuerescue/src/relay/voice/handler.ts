@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { DynamoRelayStore } from "../server/store";
 import { createAgentProvider } from "../providers/agent";
+import { verifyVoiceDecision } from "./verify";
 import { saveVoiceAnswer } from "./decision";
 import { tickOutbound } from "./transport";
 import { availabilityQuestion, clarificationQuestion } from "./prompts";
@@ -112,7 +113,19 @@ export async function handler(event: LexEvent) {
       { call, volunteer, shift, transcript },
       AbortSignal.timeout(14000),
     );
-    const interpretation = result.interpretation;
+    let interpretation = result.interpretation;
+    if (
+      ["confirmed", "declined"].includes(interpretation.outcome) &&
+      interpretation.confidence >= 0.8
+    ) {
+      await db.reserveAnalysis(tenant);
+      interpretation = await verifyVoiceDecision(
+        interpretation,
+        transcript,
+        availabilityQuestion(shift, volunteer),
+        AbortSignal.timeout(6000),
+      );
+    }
     const explicitQuestion = clarificationQuestion(shift, volunteer);
     const clarify =
       interpretation.confidence < 0.8 ||

@@ -73,6 +73,6 @@ Read `website-phone-control.md`, `subscription-plan.md` and `sample-schedule.md`
 
 ## Handoff verification
 
-The complete local check sequence passed: TypeScript, ESLint, 172 domain/API tests, 8 separate client/tutorial tests, optimized Next.js production build and web/API/voice bundles. An existing CI failure from reading `window` during a non-browser test was repaired with an environment guard and browser-query routing coverage. The Next.js build retains a non-fatal legacy CSS compatibility warning.
+The complete local check sequence passed: TypeScript, ESLint, 182 domain/API tests, 8 separate client/tutorial tests, optimized Next.js production build and web/API/voice bundles. An existing CI failure from reading `window` during a non-browser test was repaired with an environment guard and browser-query routing coverage. The Next.js build retains a non-fatal legacy CSS compatibility warning.
 
 After rebuilding and committing source, run `python3 scripts/package-handoff.py` from the repository root to regenerate both the readable-source download and AWS artifacts. Their manifests record the exact source commit and SHA-256 checksums. This packaging command has no cloud side effects.
