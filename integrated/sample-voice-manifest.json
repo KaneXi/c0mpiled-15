@@ -1,0 +1,6 @@
+{
+  "sourceCommit": "4fc1c953f60347754ab5cbfd88c048d652b7d45c",
+  "scope": "AWS deployment artifacts: sample schedules and bounded outbound test. No credentials, phone numbers, or resource setup included. No standalone Next.js server in this archive.",
+  "tests": "82 focused tests passed; actual refusal and replacement dialing verified; full acceptance and revised wording not yet verified over telephone.",
+  "archiveSha256": "bdd8e694f9948d43005dca440addc45ea5957d57356266f03c895587d8d0dc2f"
+}
