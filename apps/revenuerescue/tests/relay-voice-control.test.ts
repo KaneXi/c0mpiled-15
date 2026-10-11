@@ -3,6 +3,7 @@ import { createRelayState } from "../src/relay/seed";
 import {
   preparePhoneTest,
   schedulePhoneTest,
+  phoneTestRunLimit,
 } from "../src/relay/voice/control";
 const now = "2026-10-11T21:00:00.000Z";
 function fixture() {
@@ -125,4 +126,26 @@ describe("website-owned phone planning", () => {
     vi.stubEnv("VOICE_SERVICE_ENDS_AT", now);
     expect(() => preparePhoneTest(s, setup, now)).toThrow(/window/);
   });
+  it("extends the allowance to fifty without erasing previous usage or arming a call", () => {
+    const { s, setup } = fixture();
+    s.phoneTest!.runsScheduled = 4;
+    vi.stubEnv("VOICE_TEST_RUN_LIMIT", "50");
+    const ready = preparePhoneTest(s, setup, now);
+    expect(ready.phoneTest?.runsScheduled).toBe(4);
+    expect(ready.phoneTest?.runLimit).toBe(50);
+    expect(ready.phoneTest?.armedAt).toBeUndefined();
+    expect(ready.paused).toBe(true);
+    ready.phoneTest!.runsScheduled = 49;
+    const last = schedulePhoneTest(ready, undefined, now, true);
+    expect(last.phoneTest?.runsScheduled).toBe(50);
+    last.paused = true;
+    expect(() => preparePhoneTest(last, setup, now)).toThrow(/test-run/);
+  });
+  it.each(["51", "-1", "Infinity", "abc"])(
+    "rejects invalid run allowance %s",
+    (value) => {
+      vi.stubEnv("VOICE_TEST_RUN_LIMIT", value);
+      expect(phoneTestRunLimit()).toBe(3);
+    },
+  );
 });

@@ -5,6 +5,7 @@ import s from "./Relay.module.css";
 import { SubscriptionLink } from "./SubscriptionPlan";
 import { managerMessages } from "./manager-messages";
 import { availabilityQuestion } from "@/relay/voice/prompts";
+import { inquiryStartBlocker } from "./phone-control-state";
 const stages = {
   waiting: "Inquiry queued",
   ready: "Ready",
@@ -28,6 +29,7 @@ export function PhoneTestView({
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [savedAfterRun, setSavedAfterRun] = useState<string | null>(null);
   const localValue = (value: DateTime) =>
     value.setZone("America/New_York").toFormat("yyyy-MM-dd'T'HH:mm");
   const participants = state.volunteers.filter(
@@ -103,6 +105,22 @@ export function PhoneTestView({
       timeZoneName: "short",
     }).format(new Date(value));
   const notifications = managerMessages(state);
+  const remainingRuns = Math.max(
+    0,
+    (test.runLimit || 3) - (test.runsScheduled || 0),
+  );
+  const startBlocker = inquiryStartBlocker({
+    busy,
+    paused: state.paused,
+    hasCode: !!code.trim(),
+    waitingForSave:
+      savedAfterRun !== null && savedAfterRun === (test.runId || ""),
+    hasRun: !!test.runId,
+    planChanged,
+    alreadyStarted: !!test.armedAt || !!test.startedAt,
+    remainingRuns,
+    authorized: authorizeCalls,
+  });
   async function control(
     action: "prepare" | "schedule" | "start_now" | "stop",
   ) {
@@ -147,6 +165,8 @@ export function PhoneTestView({
       const data = await r.json();
       if (!r.ok)
         throw new Error(data.error || "Could not change calling state.");
+      if (action === "prepare") setSavedAfterRun(test.runId || "");
+      setAuthorizeCalls(false);
       setMessage(
         action === "prepare"
           ? "Roster and shift saved. Confirm authorization, then call now or schedule an inquiry."
@@ -158,9 +178,6 @@ export function PhoneTestView({
               ? "Inquiry scheduled. AWS starts at or shortly after that time, even if you close this page."
               : "Sequence paused. No further calls will start.",
       );
-      if (action !== "prepare") {
-        setAuthorizeCalls(false);
-      }
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Please try again.");
     } finally {
@@ -266,7 +283,10 @@ export function PhoneTestView({
               type="password"
               value={code}
               autoComplete="off"
-              onChange={(event) => setCode(event.target.value)}
+              onChange={(event) => {
+                setCode(event.target.value);
+                setAuthorizeCalls(false);
+              }}
               maxLength={64}
             />
           </label>
@@ -277,6 +297,7 @@ export function PhoneTestView({
                 value={originalId}
                 disabled={busy || !state.paused}
                 onChange={(event) => {
+                  setAuthorizeCalls(false);
                   setOriginalId(event.target.value);
                   if (event.target.value === replacementId)
                     setReplacementId(originalId);
@@ -295,6 +316,7 @@ export function PhoneTestView({
                 value={replacementId}
                 disabled={busy || !state.paused}
                 onChange={(event) => {
+                  setAuthorizeCalls(false);
                   setReplacementId(event.target.value);
                   if (event.target.value === originalId)
                     setOriginalId(replacementId);
@@ -313,7 +335,10 @@ export function PhoneTestView({
                 type="datetime-local"
                 value={shiftStart}
                 disabled={busy || !state.paused}
-                onChange={(event) => setShiftStart(event.target.value)}
+                onChange={(event) => {
+                  setShiftStart(event.target.value);
+                  setAuthorizeCalls(false);
+                }}
               />
             </label>
             <label>
@@ -322,7 +347,10 @@ export function PhoneTestView({
                 type="datetime-local"
                 value={shiftEnd}
                 disabled={busy || !state.paused}
-                onChange={(event) => setShiftEnd(event.target.value)}
+                onChange={(event) => {
+                  setShiftEnd(event.target.value);
+                  setAuthorizeCalls(false);
+                }}
               />
             </label>
           </div>
@@ -330,6 +358,7 @@ export function PhoneTestView({
             className={s.textButton}
             disabled={busy || !state.paused}
             onClick={() => {
+              setAuthorizeCalls(false);
               setShiftStart(localValue(DateTime.now().plus({ minutes: 20 })));
               setShiftEnd(localValue(DateTime.now().plus({ minutes: 80 })));
             }}
@@ -364,7 +393,7 @@ export function PhoneTestView({
               </p>
               <p>{availabilityQuestion(shift, savedOriginal)}</p>
               <p className={s.hint}>
-                {Math.max(0, (test.runLimit || 3) - (test.runsScheduled || 0))}{" "}
+                {remainingRuns}{" "}
                 calling sequences remain in the authorized allowance.
               </p>
             </div>
@@ -384,15 +413,19 @@ export function PhoneTestView({
               type="datetime-local"
               value={inquiryTime}
               disabled={busy}
-              onChange={(event) => setInquiryTime(event.target.value)}
+              onChange={(event) => {
+                setInquiryTime(event.target.value);
+                setAuthorizeCalls(false);
+              }}
             />
           </label>
           <button
             className={s.textButton}
             disabled={busy}
-            onClick={() =>
-              setInquiryTime(localValue(DateTime.now().plus({ minutes: 2 })))
-            }
+            onClick={() => {
+              setInquiryTime(localValue(DateTime.now().plus({ minutes: 2 })));
+              setAuthorizeCalls(false);
+            }}
           >
             Use two minutes from now
           </button>
@@ -418,7 +451,7 @@ export function PhoneTestView({
               <input
                 type="checkbox"
                 checked={authorizeCalls}
-                disabled={busy || !!test.armedAt || !!test.startedAt}
+                disabled={busy || !state.paused}
                 onChange={(event) => setAuthorizeCalls(event.target.checked)}
               />{" "}
               I authorize up to two real calls to these consenting participants,
@@ -435,15 +468,8 @@ export function PhoneTestView({
           <div className={s.actions}>
             <button
               className={s.primary}
-              disabled={
-                busy ||
-                !code ||
-                !authorizeCalls ||
-                !test.runId ||
-                planChanged ||
-                !!test.armedAt ||
-                !!test.startedAt
-              }
+              disabled={!!startBlocker}
+              aria-describedby="inquiry-start-help"
               onClick={() => void control("start_now")}
             >
               {busy
@@ -452,16 +478,8 @@ export function PhoneTestView({
             </button>
             <button
               className={s.secondary}
-              disabled={
-                busy ||
-                !code ||
-                !inquiryTime ||
-                !authorizeCalls ||
-                !test.runId ||
-                planChanged ||
-                !!test.armedAt ||
-                !!test.startedAt
-              }
+              disabled={!!startBlocker || !inquiryTime}
+              aria-describedby="inquiry-start-help"
               onClick={() => void control("schedule")}
             >
               Schedule automatic inquiry
@@ -479,6 +497,12 @@ export function PhoneTestView({
               Cancel / stop calling
             </button>
           </div>
+          <p id="inquiry-start-help" role="status" className={s.hint}>
+            {startBlocker ||
+              (!inquiryTime
+                ? "Choose an inquiry time to schedule, or select Call now."
+                : "Ready. Select Call now, or Schedule automatic inquiry for the time above.")}
+          </p>
           {message && <p role="status">{message}</p>}
         </section>
       )}

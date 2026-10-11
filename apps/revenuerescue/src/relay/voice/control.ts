@@ -6,7 +6,7 @@ import type { RelayState } from "../contracts";
 
 export function phoneTestRunLimit() {
   const value = Number(process.env.VOICE_TEST_RUN_LIMIT || "3");
-  return Number.isInteger(value) && value >= 3 && value <= 10 ? value : 3;
+  return Number.isInteger(value) && value >= 3 && value <= 50 ? value : 3;
 }
 export function schedulePhoneTest(
   state: RelayState,
