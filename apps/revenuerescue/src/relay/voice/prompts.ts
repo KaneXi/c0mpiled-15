@@ -46,3 +46,7 @@ export function openingPrompt(
       : "I am checking whether your scheduled time still works for you.";
   return `Hi ${person.name}. This is Relay, your automated volunteer scheduling assistant. Your answer will be transcribed; no audio recording is saved. ${context} ${availabilityQuestion(shift, person)}`;
 }
+
+export function clarificationQuestion(shift: Shift, person: Volunteer) {
+  return `I did not get a clear answer. For ${shift.title}, ${spokenShiftWindow(shift, person.timezone)}, please say I am available, or I am not available. If only part of that time works, tell me the hours.`;
+}

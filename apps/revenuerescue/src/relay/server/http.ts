@@ -1,4 +1,4 @@
-import { controlPhoneTest } from "../voice/control";
+import { controlPhoneTest, phoneTestRunLimit } from "../voice/control";
 import { commandEnvelopeSchema } from "../contracts";
 import { getStore, ServiceError } from "./store";
 import { getService } from "./service";
@@ -94,6 +94,7 @@ export async function handleRelayRequest(request: Request): Promise<Response> {
           tenantId: "public-phone-test",
           phoneTest: {
             ...view.state.phoneTest,
+            runLimit: phoneTestRunLimit(),
             processedTurns: undefined,
             allocationNumber: undefined,
             allocationToken: undefined,

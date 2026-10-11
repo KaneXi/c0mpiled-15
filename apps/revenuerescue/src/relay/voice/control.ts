@@ -4,6 +4,10 @@ import { getStore, ServiceError } from "../server/store";
 import { z } from "zod";
 import type { RelayState } from "../contracts";
 
+export function phoneTestRunLimit() {
+  const value = Number(process.env.VOICE_TEST_RUN_LIMIT || "3");
+  return Number.isInteger(value) && value >= 3 && value <= 10 ? value : 3;
+}
 export function schedulePhoneTest(
   state: RelayState,
   scheduledFor: unknown,
@@ -26,8 +30,11 @@ export function schedulePhoneTest(
       "This single-run test has already been scheduled or started.",
       409,
     );
-  if ((test.runsScheduled || 0) >= 3)
-    throw new ServiceError("This demo has reached its three-run limit.", 409);
+  if ((test.runsScheduled || 0) >= phoneTestRunLimit())
+    throw new ServiceError(
+      "This demo has reached its authorized test-run limit.",
+      409,
+    );
   if (!Number.isFinite(due) || due < Date.parse(now) + (immediate ? 0 : 10_000))
     throw new ServiceError(
       "Choose an inquiry time at least ten seconds in the future.",
@@ -99,10 +106,11 @@ export function preparePhoneTest(
     );
   if (
     (old.runsScheduled ??
-      (old.history?.length || 0) + (old.startedAt ? 1 : 0)) >= 3
+      (old.history?.length || 0) + (old.startedAt ? 1 : 0)) >=
+    phoneTestRunLimit()
   )
     throw new ServiceError(
-      "This demo has reached its three-run limit. Calling is disabled until the owner renews the test allowance.",
+      "This demo has reached its authorized test-run limit. Calling is disabled until the owner renews the test allowance.",
       409,
     );
   const people = [originalId, replacementId].map((id) =>
@@ -189,6 +197,7 @@ export function preparePhoneTest(
     phoneTest: {
       mode: "outbound",
       runId: randomUUID(),
+      runLimit: phoneTestRunLimit(),
       originalVolunteerId: originalId,
       replacementVolunteerId: replacementId,
       runsScheduled:

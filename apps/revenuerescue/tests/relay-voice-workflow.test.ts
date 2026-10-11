@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createRelayState } from "../src/relay/seed";
 import { schedulePhoneTest } from "../src/relay/voice/control";
+import { saveVoiceAnswer } from "../src/relay/voice/decision";
 import { advanceOutbound } from "../src/relay/voice/workflow";
-import { applyCommand, completeCall, coverage } from "../src/relay/engine";
+import { applyCommand, coverage } from "../src/relay/engine";
 import type { CallOutcome, RelayState } from "../src/relay/contracts";
 const now = "2026-10-11T21:00:00.000Z";
 function initial() {
@@ -32,7 +33,7 @@ function initial() {
 }
 function finish(state: RelayState, outcome: CallOutcome) {
   const call = state.calls.find((c) => c.status === "in_progress")!;
-  const next = completeCall(
+  const next = saveVoiceAnswer(
     state,
     call.id,
     {
@@ -43,13 +44,55 @@ function finish(state: RelayState, outcome: CallOutcome) {
       availableFrom: null,
       availableUntil: null,
     },
-    "amazon-bedrock",
     "Fictional test",
     now,
   );
-  return next;
+  return next.state;
 }
 describe("bounded real-call orchestration", () => {
+  it("confirms an original yes immediately and never calls a replacement", () => {
+    let s = advanceOutbound(initial(), now);
+    const shift = structuredClone(s.shifts[0]);
+    const original = s.calls[0].volunteerId;
+    s = finish(s, "confirmed");
+    expect(s.assignments.find((a) => a.volunteerId === original)?.status).toBe(
+      "confirmed",
+    );
+    expect(s.phoneTest?.stage).toBe("completed");
+    expect(s.phoneTest?.events.at(-1)?.text).toContain("Manager notified:");
+    expect(s.shifts[0]).toEqual(shift);
+    s = advanceOutbound(s, now);
+    expect(s.calls).toHaveLength(1);
+    expect(s.paused).toBe(true);
+  });
+  it("persists the manager refusal notice before starting a replacement, then saves its acceptance", () => {
+    let s = advanceOutbound(initial(), now);
+    s.phoneTest!.originalVolunteerId = s.calls[0].volunteerId;
+    const shift = structuredClone(s.shifts[0]);
+    s.calls[0].contactId = "original-contact";
+    s = finish(s, "declined");
+    expect(s.calls).toHaveLength(1);
+    expect(s.phoneTest?.events.at(-1)?.text).toContain("declined");
+    expect(s.activity.at(-1)?.nextAction).not.toContain("manager decision");
+    s = advanceOutbound(s, now);
+    expect(s.calls.filter((c) => c.status === "in_progress")).toHaveLength(0);
+    s.calls[0].disconnectedAt = now;
+    s = advanceOutbound(s, now);
+    const replacement = s.calls.find((c) => c.status === "in_progress")!;
+    s = finish(s, "confirmed");
+    expect(
+      s.assignments
+        .filter((a) => a.status === "confirmed")
+        .map((a) => a.volunteerId),
+    ).toEqual([replacement.volunteerId]);
+    expect(s.phoneTest?.events.at(-1)?.text).toContain(
+      "Responsible volunteer changed from",
+    );
+    expect(s.shifts[0]).toEqual(shift);
+    s = advanceOutbound(s, now);
+    expect(s.calls).toHaveLength(2);
+    expect(s.paused).toBe(true);
+  });
   it("waits until the scheduled instant and starts exactly one original inquiry", () => {
     let state = initial();
     delete state.phoneTest!.startedAt;
