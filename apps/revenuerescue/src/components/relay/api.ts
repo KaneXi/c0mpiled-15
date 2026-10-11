@@ -39,9 +39,9 @@ export const relayApi = {
   read: (signal?: AbortSignal) =>
     request(
       typeof window !== "undefined" &&
-        new URLSearchParams(window.location.search).get("phone-test") === "1"
-        ? "state?phone-test=1"
-        : "state",
+        new URLSearchParams(window.location.search).get("demo") === "1"
+        ? "state"
+        : "state?phone-test=1",
       { signal },
     ),
   session: (signal?: AbortSignal) =>

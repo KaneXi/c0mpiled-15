@@ -70,7 +70,15 @@ export async function verifyVoiceDecision(
       .object({ supported: z.boolean() })
       .strict()
       .parse(JSON.parse(raw));
-    if (decision.supported) return { ...interpretation, clarification: "" };
+    if (decision.supported)
+      return {
+        ...interpretation,
+        clarification: "",
+        // A verified full-shift answer refers to the saved shift, not model-generated clock conversions.
+        ...(interpretation.outcome === "confirmed"
+          ? { availableFrom: null, availableUntil: null }
+          : {}),
+      };
   } catch {
     // An unavailable or invalid verifier never permits an automatic assignment or refusal.
   }
