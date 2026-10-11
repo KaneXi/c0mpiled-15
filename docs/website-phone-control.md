@@ -70,3 +70,5 @@ For the owner's requested next test, the core API accepts a private `VOICE_TEST_
 The homepage now brings task creation, the two preselected participants, complete shift responsibility and persistent manager messages together. Declined, unanswered and unconfirmed calls remain visible from the current run and archived history. These are in-app notifications; deployment does not send SMS or place calls.
 
 A separately verified full-shift acceptance uses the authoritative saved shift rather than model-generated date offsets. This fixes a real case where "yes it will work" was correctly understood but invented UTC/EDT offsets prevented assignment. Conditional, partial and unresolved answers still require clarification. Historical failures are not rewritten as successes.
+
+The original dashboard layout, Schedule / Volunteers / Calls navigation, schedule cards and guided tour are preserved. Create shift and Manage calls open the real task controls within the dashboard. Manager messages and the replacement timeline are embedded below the schedule.

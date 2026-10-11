@@ -34,6 +34,7 @@ import { ShiftEditor, VolunteerEditor, type SendCommand } from "./Editors";
 import { browserZone, dateTime, label } from "./format";
 import { SubscriptionLink } from "./SubscriptionPlan";
 import { PhoneTestView } from "./PhoneTestView";
+import { managerMessages } from "./manager-messages";
 import { RelayTour } from "./RelayTour";
 import { RELAY_TOUR_KEY, type RelayTourTab } from "./tour-flow";
 import s from "./Relay.module.css";
@@ -262,7 +263,7 @@ function ShiftRow({
                 <span className={s.hint}>· {label(a.status)}</span>
                 {a.note && <small>{a.note}</small>}
               </span>
-              {shift.status !== "cancelled" && (
+              {!view.state.phoneTest && shift.status !== "cancelled" && (
                 <button
                   className={s.textButton}
                   disabled={busy}
@@ -280,7 +281,7 @@ function ShiftRow({
           ))}
         </ul>
       </div>
-      {shift.status !== "cancelled" && (
+      {!view.state.phoneTest && shift.status !== "cancelled" && (
         <div className={s.shiftActions}>
           {shift.status === "draft" && (
             <>
@@ -414,6 +415,14 @@ function CallRow({
     (v) => v.id === call.volunteerId,
   );
   const shift = view.state.shifts.find((v) => v.id === call.shiftId);
+  const savedConfirmation =
+    !view.state.phoneTest ||
+    view.state.assignments.some(
+      (assignment) =>
+        assignment.shiftId === call.shiftId &&
+        assignment.volunteerId === call.volunteerId &&
+        assignment.status === "confirmed",
+    );
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await send(
@@ -561,9 +570,15 @@ function CallRow({
       {call.result && (
         <div className={s.callResult}>
           <Badge
-            tone={call.result.outcome === "confirmed" ? "good" : "warning"}
+            tone={
+              call.result.outcome === "confirmed" && savedConfirmation
+                ? "good"
+                : "warning"
+            }
           >
-            {label(call.result.outcome)}
+            {call.result.outcome === "confirmed" && !savedConfirmation
+              ? "Needs review · no assignment saved"
+              : label(call.result.outcome)}
           </Badge>
           <p>{call.result.summary}</p>
           {call.result.clarification && (
@@ -593,6 +608,7 @@ export default function RelayDashboard() {
   const [view, setView] = useState<RelayView | null>(null);
   const viewRef = useRef<RelayView | null>(null);
   const [tab, setTab] = useState<Tab>("schedule");
+  const [liveControls, setLiveControls] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [busy, setBusy] = useState(false);
   const commandPending = useRef(false);
@@ -706,7 +722,13 @@ export default function RelayDashboard() {
   }, [update, reload]);
 
   const send: SendCommand = async (command, success) => {
-    if (!viewRef.current || commandPending.current || help) return false;
+    if (
+      !viewRef.current ||
+      commandPending.current ||
+      help ||
+      viewRef.current.state.phoneTest
+    )
+      return false;
     commandPending.current = true;
     setBusy(true);
     setError("");
@@ -766,8 +788,8 @@ export default function RelayDashboard() {
     );
 
   const state = view.state;
-  if (state.phoneTest)
-    return <PhoneTestView state={state} connection={connection} />;
+  const live = !!state.phoneTest;
+  const messages = live ? managerMessages(state) : [];
   const openIncidents = state.incidents.filter(
     (i) => i.status === "pending" || i.status === "approved",
   );
@@ -805,7 +827,11 @@ export default function RelayDashboard() {
         </a>
         <div className={s.organization}>
           <strong>{state.organization}</strong>
-          <span>Guest manager · fictional data</span>
+          <span>
+            {live
+              ? "Live volunteer coordination"
+              : "Guest manager · fictional data"}
+          </span>
         </div>
         <nav aria-label="Workspace" className={s.navigation}>
           {(
@@ -847,10 +873,15 @@ export default function RelayDashboard() {
             className={s.textButton}
             disabled={busy}
             onClick={() => setReset(true)}
+            hidden={live}
           >
             <RefreshCw size={16} /> Sample schedules
           </button>
-          <p>Calls are simulated. No volunteers are phoned.</p>
+          <p>
+            {live
+              ? "Real calls start only after manager authorization."
+              : "Calls are simulated. No volunteers are phoned."}
+          </p>
         </div>
       </aside>
       <main id="relay-main" className={s.main}>
@@ -874,18 +905,24 @@ export default function RelayDashboard() {
           <button
             className={state.paused ? s.primary : s.pause}
             data-relay-tour="pause"
-            disabled={busy}
+            disabled={busy || help}
             onClick={() =>
-              void send(
-                { type: "SET_PAUSED", paused: !state.paused },
-                state.paused
-                  ? "AI calls resumed. Relay will recheck each queued call before starting."
-                  : "AI calls paused. No new calls will start; active calls can finish.",
-              )
+              live
+                ? setLiveControls(true)
+                : void send(
+                    { type: "SET_PAUSED", paused: !state.paused },
+                    state.paused
+                      ? "AI calls resumed. Relay will recheck each queued call before starting."
+                      : "AI calls paused. No new calls will start; active calls can finish.",
+                  )
             }
           >
             {state.paused ? <Play size={17} /> : <Pause size={17} />}
-            {state.paused ? "Resume AI Calls" : "Pause AI Calls"}
+            {live
+              ? "Manage calls"
+              : state.paused
+                ? "Resume AI Calls"
+                : "Pause AI Calls"}
           </button>
         </header>
         <div className={s.statusBar}>
@@ -899,11 +936,7 @@ export default function RelayDashboard() {
           <span>{openIncidents.length} open plans</span>
           <span>{currentCalls.length} active / queued calls</span>
         </div>
-        <p>
-          <a className={s.textButton} href="/?phone-test=1">
-            View the live phone test <ArrowRight size={16} />
-          </a>
-        </p>
+
         {welcome && (
           <section
             className={s.tourWelcome}
@@ -1018,7 +1051,7 @@ export default function RelayDashboard() {
                 </details>
               </section>
             )}
-            {(openIncidents.length > 0 || help) && (
+            {!live && (openIncidents.length > 0 || help) && (
               <section className={s.attention} data-relay-tour="attention">
                 <div className={s.sectionHeading}>
                   <h2>Needs your attention</h2>
@@ -1050,8 +1083,10 @@ export default function RelayDashboard() {
                 </div>
                 <button
                   className={s.primary}
-                  disabled={busy}
-                  onClick={() => setEditor({ type: "shift" })}
+                  disabled={busy || help}
+                  onClick={() =>
+                    live ? setLiveControls(true) : setEditor({ type: "shift" })
+                  }
                 >
                   <Plus size={17} /> Create shift
                 </button>
@@ -1082,13 +1117,65 @@ export default function RelayDashboard() {
                       shift={shift}
                       view={view}
                       send={send}
-                      busy={busy}
+                      busy={busy || live}
                       edit={() => setEditor({ type: "shift", value: shift })}
                     />
                   ))}
                 </div>
               )}
             </section>
+            {live && (
+              <section className={s.section} aria-labelledby="manager-inbox">
+                <div className={s.sectionHeading}>
+                  <h2 id="manager-inbox">Manager messages</h2>
+                  <Badge tone="warning">
+                    {
+                      messages.filter((item) => item.kind !== "confirmed")
+                        .length
+                    }{" "}
+                    need attention
+                  </Badge>
+                </div>
+                <p className={s.hint}>
+                  Declined and unsuccessful calls remain here. Updates are saved
+                  automatically.
+                </p>
+                <div role="log" aria-live="polite" aria-relevant="additions">
+                  {messages.length ? (
+                    <ul className={s.managerMessages}>
+                      {messages.map((item) => (
+                        <li key={item.id}>
+                          <div>
+                            <strong>{item.title}</strong>
+                            <Badge
+                              tone={
+                                item.kind === "confirmed" ? "good" : "warning"
+                              }
+                            >
+                              {item.label}
+                            </Badge>
+                          </div>
+                          <p>{item.message}</p>
+                          <p>
+                            {item.shiftTitle} · {dateTime(item.start)} —{" "}
+                            {dateTime(item.end)}
+                          </p>
+                          <time dateTime={item.at}>
+                            {dateTime(item.at)}
+                            {item.previous ? " · Previous task" : ""}
+                          </time>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>No manager messages yet.</p>
+                  )}
+                </div>
+              </section>
+            )}
+            {live && (
+              <PhoneTestView state={state} connection="" mode="progress" />
+            )}
             <ActivityList view={view} />
           </>
         )}
@@ -1101,7 +1188,7 @@ export default function RelayDashboard() {
               </h2>
               <button
                 className={s.primary}
-                disabled={busy}
+                disabled={busy || live}
                 onClick={() => setEditor({ type: "volunteer" })}
               >
                 <Plus size={17} /> Add volunteer
@@ -1189,7 +1276,7 @@ export default function RelayDashboard() {
                   </div>
                   <button
                     className={s.secondary}
-                    disabled={busy}
+                    disabled={busy || live}
                     onClick={() => {
                       setEditor({ type: "volunteer", value: volunteer });
                       document
@@ -1209,12 +1296,12 @@ export default function RelayDashboard() {
             <section className={s.section} data-relay-tour="calls">
               <div className={s.sectionHeading}>
                 <h2>Active & queued calls</h2>
-                <Badge>Simulated transport</Badge>
+                <Badge>{live ? "Amazon Connect" : "Simulated transport"}</Badge>
               </div>
               <p className={s.sectionIntro}>
-                Relay starts due calls automatically after a shift is published.
-                Fill in the volunteer’s side when a simulated call is in
-                progress.
+                {live
+                  ? "Authorized calls and spoken answers update here automatically. Use Manage calls to start or stop the saved sequence."
+                  : "Relay starts due calls automatically after a shift is published. Fill in the volunteer’s side when a simulated call is in progress."}
               </p>
               {currentCalls.length ? (
                 currentCalls.map((call) => (
@@ -1280,6 +1367,18 @@ export default function RelayDashboard() {
           <span>Saved on the server · updates every 3 seconds</span>
         </footer>
       </main>
+      {liveControls && live && (
+        <Dialog
+          title="Create task & manage calls"
+          onClose={() => setLiveControls(false)}
+        >
+          <PhoneTestView
+            state={state}
+            connection={connection}
+            mode="controls"
+          />
+        </Dialog>
+      )}
       {myself && (
         <Dialog
           title="Assign yourself to this shift?"

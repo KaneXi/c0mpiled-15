@@ -16,10 +16,13 @@ const stages = {
 export function PhoneTestView({
   state,
   connection,
+  mode = "full",
 }: {
   state: RelayState;
   connection: string;
+  mode?: "full" | "controls" | "progress";
 }) {
+  const Container = mode === "full" ? "main" : "div";
   const test = state.phoneTest!;
   const outbound = test.mode === "outbound";
   const [code, setCode] = useState("");
@@ -167,61 +170,97 @@ export function PhoneTestView({
     }
   }
   return (
-    <main className={s.phoneTest} id="workspace-top">
-      <div className={s.brand}>
-        Relay<span>.</span>
-      </div>
-      <header className={s.header}>
-        <div>
-          <h1>
-            {outbound
-              ? "Your volunteer schedule"
-              : `${state.volunteers[0].name}’s schedule`}
-          </h1>
+    <Container
+      className={mode === "full" ? s.phoneTest : undefined}
+      id={mode === "full" ? "workspace-top" : undefined}
+    >
+      {mode === "full" && (
+        <>
+          <div className={s.brand}>
+            Relay<span>.</span>
+          </div>
+          <header className={s.header}>
+            <div>
+              <h1>
+                {outbound
+                  ? "Your volunteer schedule"
+                  : `${state.volunteers[0].name}’s schedule`}
+              </h1>
+              <p>
+                {outbound
+                  ? "Check availability. Contact eligible replacements. Confirm coverage."
+                  : "Saved schedule and live progress."}
+              </p>
+            </div>
+            <span className={`${s.badge} ${s.warning}`}>
+              {stages[test.stage]}
+            </span>
+          </header>
           <p>
-            {outbound
-              ? "Check availability. Contact eligible replacements. Confirm coverage."
-              : "Saved schedule and live progress."}
+            <SubscriptionLink />
           </p>
-        </div>
-        <span className={`${s.badge} ${s.warning}`}>{stages[test.stage]}</span>
-      </header>
-      <p>
-        <SubscriptionLink />
-      </p>
-      {connection && <p role="alert">{connection}</p>}
-      <nav className={s.homeLinks} aria-label="Workspace sections">
-        <a href="#outbound-controls">Create task</a>
-        <a href="#manager-inbox">Manager messages ({notifications.length})</a>
-        <a href="#replacement-timeline">Live schedule</a>
-      </nav>
-      <section className={s.phoneTestSection} aria-labelledby="manager-inbox">
-        <h2 id="manager-inbox">Manager messages</h2>
-        <p className={s.hint}>Declined and unsuccessful calls stay here, including previous tasks. These are in-app messages.</p>
-        <div role="log" aria-live="polite" aria-relevant="additions">
-          {notifications.length ? (
-            <ul className={s.managerMessages}>
-              {notifications.map((item) => (
-                <li key={item.id}>
-                  <div><strong>{item.title}</strong><span className={`${s.badge} ${item.kind === "confirmed" ? s.good : s.warning}`}>{item.label}</span></div>
-                  <p>{item.message}</p>
-                  <p>{item.shiftTitle} · {format(item.start)} – {format(item.end)}</p>
-                  <time dateTime={item.at}>{format(item.at)}{item.previous ? " · Previous task" : ""}</time>
-                </li>
-              ))}
-            </ul>
-          ) : <p>No call updates yet. Save a task and start an inquiry to see the result here.</p>}
-        </div>
-      </section>
-      {outbound && (
+          {connection && <p role="alert">{connection}</p>}
+          <nav className={s.homeLinks} aria-label="Workspace sections">
+            <a href="#outbound-controls">Create task</a>
+            <a href="#manager-inbox">
+              Manager messages ({notifications.length})
+            </a>
+            <a href="#replacement-timeline">Live schedule</a>
+          </nav>
+          <section
+            className={s.phoneTestSection}
+            aria-labelledby="manager-inbox"
+          >
+            <h2 id="manager-inbox">Manager messages</h2>
+            <p className={s.hint}>
+              Declined and unsuccessful calls stay here, including previous
+              tasks. These are in-app messages.
+            </p>
+            <div role="log" aria-live="polite" aria-relevant="additions">
+              {notifications.length ? (
+                <ul className={s.managerMessages}>
+                  {notifications.map((item) => (
+                    <li key={item.id}>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <span
+                          className={`${s.badge} ${item.kind === "confirmed" ? s.good : s.warning}`}
+                        >
+                          {item.label}
+                        </span>
+                      </div>
+                      <p>{item.message}</p>
+                      <p>
+                        {item.shiftTitle} · {format(item.start)} –{" "}
+                        {format(item.end)}
+                      </p>
+                      <time dateTime={item.at}>
+                        {format(item.at)}
+                        {item.previous ? " · Previous task" : ""}
+                      </time>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>
+                  No call updates yet. Save a task and start an inquiry to see
+                  the result here.
+                </p>
+              )}
+            </div>
+          </section>
+        </>
+      )}
+      {outbound && mode !== "progress" && (
         <section
           className={s.phoneTestSection}
           aria-labelledby="outbound-controls"
         >
           <h2 id="outbound-controls">Create a task</h2>
           <p>
-            Parag and Kane are already in your roster. The first person and their
-            replacement are selected below; choose the shift hours and save.
+            Parag and Kane are already in your roster. The first person and
+            their replacement are selected below; choose the shift hours and
+            save.
           </p>
           <label>
             Manager access code{" "}
@@ -440,7 +479,7 @@ export function PhoneTestView({
           {message && <p role="status">{message}</p>}
         </section>
       )}
-      {outbound && (
+      {outbound && mode !== "controls" && (
         <section
           className={s.phoneTestSection}
           aria-labelledby="replacement-timeline"
@@ -543,145 +582,164 @@ export function PhoneTestView({
           </ol>
         </section>
       )}
-      <section className={s.phoneTestSection} aria-labelledby="test-schedule">
-        <h2 id="test-schedule">Current assignment</h2>
-        <dl className={s.phoneTestFacts}>
-          <div>
-            <dt>Assigned to</dt>
-            <dd>{names || "Uncovered"}</dd>
-          </div>
-          <div>
-            <dt>Attendance</dt>
-            <dd>
-              {assignments.some((a) => a.status === "confirmed")
-                ? "Confirmed"
-                : "Not confirmed"}
-            </dd>
-          </div>
-          <div>
-            <dt>Starts</dt>
-            <dd>{format(shift.start)}</dd>
-          </div>
-          <div>
-            <dt>Ends</dt>
-            <dd>{format(shift.end)}</dd>
-          </div>
-        </dl>
-      </section>
-      {outbound && (
-        <section className={s.phoneTestSection} aria-labelledby="call-sequence">
-          <h2 id="call-sequence">Call details</h2>
-          {state.calls.length === 0 && (
-            <p>
-              No call has started. The next change will appear here
-              automatically.
-            </p>
-          )}
-          <ol className={s.phoneTestEvents}>
-            {state.calls.map((call) => (
-              <li key={call.id}>
-                <strong>
-                  {
-                    state.volunteers.find((v) => v.id === call.volunteerId)
-                      ?.name
-                  }{" "}
-                  ·{" "}
-                  {call.purpose === "check_in"
-                    ? "Original assignee"
-                    : "Replacement"}
-                </strong>
+      {mode === "full" && (
+        <>
+          <section
+            className={s.phoneTestSection}
+            aria-labelledby="test-schedule"
+          >
+            <h2 id="test-schedule">Current assignment</h2>
+            <dl className={s.phoneTestFacts}>
+              <div>
+                <dt>Assigned to</dt>
+                <dd>{names || "Uncovered"}</dd>
+              </div>
+              <div>
+                <dt>Attendance</dt>
+                <dd>
+                  {assignments.some((a) => a.status === "confirmed")
+                    ? "Confirmed"
+                    : "Not confirmed"}
+                </dd>
+              </div>
+              <div>
+                <dt>Starts</dt>
+                <dd>{format(shift.start)}</dd>
+              </div>
+              <div>
+                <dt>Ends</dt>
+                <dd>{format(shift.end)}</dd>
+              </div>
+            </dl>
+          </section>
+          {outbound && (
+            <section
+              className={s.phoneTestSection}
+              aria-labelledby="call-sequence"
+            >
+              <h2 id="call-sequence">Call details</h2>
+              {state.calls.length === 0 && (
                 <p>
-                  {call.status.replaceAll("_", " ")}
-                  {call.result
-                    ? ` — ${call.result.outcome.replaceAll("_", " ")}`
-                    : ""}
+                  No call has started. The next change will appear here
+                  automatically.
                 </p>
-                {call.result && <p>{call.result.summary}</p>}
-              </li>
-            ))}
-          </ol>
-          {state.incidents.map((incident) => (
-            <div key={incident.id}>
-              <p>
-                {incident.status === "covered"
-                  ? "Coverage restored. No further candidates will be called."
-                  : incident.reason}
-              </p>
-              <p>
-                Eligible candidates:{" "}
-                {incident.candidates
-                  .map(
-                    (c) =>
-                      state.volunteers.find((v) => v.id === c.volunteerId)
-                        ?.name,
-                  )
-                  .join(", ") || "None"}
-                .
-              </p>
-            </div>
-          ))}
-          <p className={s.hint}>
-            Availability, required role, overlapping shifts and calling consent
-            determine eligibility.
-          </p>
-        </section>
-      )}
-      {!!test.history?.length && (
-        <section className={s.phoneTestSection} aria-labelledby="past-tests">
-          <h2 id="past-tests">Previous tasks</h2>
-          {test.history.map((run, index) => (
-            <details key={`${run.endedAt}-${index}`}>
-              <summary>
-                {format(run.endedAt)} ·{" "}
-                {run.assignmentNames.length
-                  ? `Confirmed: ${run.assignmentNames.join(", ")}`
-                  : "No replacement confirmed"}
-              </summary>
-              <p>
-                {run.shift.title}: {format(run.shift.start)} –{" "}
-                {format(run.shift.end)}
-              </p>
-              <ul>
-                {run.calls.map((call) => (
+              )}
+              <ol className={s.phoneTestEvents}>
+                {state.calls.map((call) => (
                   <li key={call.id}>
-                    {
-                      state.volunteers.find(
-                        (person) => person.id === call.volunteerId,
-                      )?.name
-                    }
-                    : {call.result?.outcome.replaceAll("_", " ") || call.status}
+                    <strong>
+                      {
+                        state.volunteers.find((v) => v.id === call.volunteerId)
+                          ?.name
+                      }{" "}
+                      ·{" "}
+                      {call.purpose === "check_in"
+                        ? "Original assignee"
+                        : "Replacement"}
+                    </strong>
+                    <p>
+                      {call.status.replaceAll("_", " ")}
+                      {call.result
+                        ? ` — ${call.result.outcome.replaceAll("_", " ")}`
+                        : ""}
+                    </p>
+                    {call.result && <p>{call.result.summary}</p>}
                   </li>
                 ))}
-              </ul>
-            </details>
-          ))}
-        </section>
+              </ol>
+              {state.incidents.map((incident) => (
+                <div key={incident.id}>
+                  <p>
+                    {incident.status === "covered"
+                      ? "Coverage restored. No further candidates will be called."
+                      : incident.reason}
+                  </p>
+                  <p>
+                    Eligible candidates:{" "}
+                    {incident.candidates
+                      .map(
+                        (c) =>
+                          state.volunteers.find((v) => v.id === c.volunteerId)
+                            ?.name,
+                      )
+                      .join(", ") || "None"}
+                    .
+                  </p>
+                </div>
+              ))}
+              <p className={s.hint}>
+                Availability, required role, overlapping shifts and calling
+                consent determine eligibility.
+              </p>
+            </section>
+          )}
+          {!!test.history?.length && (
+            <section
+              className={s.phoneTestSection}
+              aria-labelledby="past-tests"
+            >
+              <h2 id="past-tests">Previous tasks</h2>
+              {test.history.map((run, index) => (
+                <details key={`${run.endedAt}-${index}`}>
+                  <summary>
+                    {format(run.endedAt)} ·{" "}
+                    {run.assignmentNames.length
+                      ? `Confirmed: ${run.assignmentNames.join(", ")}`
+                      : "No replacement confirmed"}
+                  </summary>
+                  <p>
+                    {run.shift.title}: {format(run.shift.start)} –{" "}
+                    {format(run.shift.end)}
+                  </p>
+                  <ul>
+                    {run.calls.map((call) => (
+                      <li key={call.id}>
+                        {
+                          state.volunteers.find(
+                            (person) => person.id === call.volunteerId,
+                          )?.name
+                        }
+                        :{" "}
+                        {call.result?.outcome.replaceAll("_", " ") ||
+                          call.status}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ))}
+            </section>
+          )}
+          <section
+            className={s.phoneTestSection}
+            aria-labelledby="test-progress"
+          >
+            <h2 id="test-progress">What happened</h2>
+            <p role="status">{test.detail}</p>
+            <ol className={s.phoneTestEvents}>
+              {test.events.map((event, i) => (
+                <li key={`${event.at}-${i}`}>
+                  <time dateTime={event.at}>{format(event.at)}</time>
+                  <span>{event.text}</span>
+                </li>
+              ))}
+            </ol>
+            <p className={s.hint}>
+              Updates automatically. Last recorded update:{" "}
+              {format(test.updatedAt)}.
+            </p>
+          </section>
+          <p>
+            <a className={s.textButton} href="#workspace-top">
+              Back to top
+            </a>
+          </p>
+          <p className={s.hint}>
+            {outbound
+              ? "Audio is transcribed for the scheduling assistant; recordings are not saved. Only an authorized manager can start calls."
+              : "The completed test verified telephone connection and a spoken reminder. It did not verify two-way AI conversation."}
+          </p>
+        </>
       )}
-      <section className={s.phoneTestSection} aria-labelledby="test-progress">
-        <h2 id="test-progress">What happened</h2>
-        <p role="status">{test.detail}</p>
-        <ol className={s.phoneTestEvents}>
-          {test.events.map((event, i) => (
-            <li key={`${event.at}-${i}`}>
-              <time dateTime={event.at}>{format(event.at)}</time>
-              <span>{event.text}</span>
-            </li>
-          ))}
-        </ol>
-        <p className={s.hint}>
-          Updates automatically. Last recorded update: {format(test.updatedAt)}.
-        </p>
-      </section>
-      <p>
-        <a className={s.textButton} href="#workspace-top">
-          Back to top
-        </a>
-      </p>
-      <p className={s.hint}>
-        {outbound
-          ? "Audio is transcribed for the scheduling assistant; recordings are not saved. Only an authorized manager can start calls."
-          : "The completed test verified telephone connection and a spoken reminder. It did not verify two-way AI conversation."}
-      </p>
-    </main>
+    </Container>
   );
 }
