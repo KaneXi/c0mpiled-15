@@ -37,3 +37,15 @@ The prior Ohio account concurrency inventory was only 10; do not assume ordinary
 ## Verification
 
 Provider tests cover full-conversation forwarding, one-call/token bounds, no contact-field forwarding, input identity checks, low-confidence clarification, valid partial availability, opt-out preservation, invalid/malformed/truncated outputs, disabled/cancelled requests, and honest AWS failures. They test the adapter contract, not real-world model accuracy. No new AWS calls were made during these tests.
+
+### Bounded live probe — October 11, 2026
+
+Three separately authorized fictional probes used the local temporary profile and Nova Lite in Ohio, with one attempt per scenario. AWS authentication and inference succeeded. Each original provider request failed because the model wrapped its JSON in a single Markdown fence. The provider now unwraps only an entire, single JSON fence before the same strict JSON/schema validation; surrounding prose is still rejected.
+
+| Scenario | Initial provider result | Latency | Recorded model result |
+| --- | --- | --- | --- |
+| Corrected cancellation | Failed JSON parsing; no outcome applied | 1,137 ms | Raw response was not retained; semantic outcome remains unverified. |
+| Full shift confirmation | Failed JSON parsing; no outcome applied | 632 ms | `confirmed`, confidence 0.95, valid JSON after removing its outer fence. |
+| Uncertain partial availability | Failed JSON parsing; no outcome applied | 760 ms | `uncertain`, confidence 0.7, valid JSON after removing its outer fence. |
+
+No further model requests were made after the three-call cap. Parser regression tests cover valid fenced JSON and reject surrounding prose. A fresh end-to-end probe after this fix remains necessary, particularly for the correction case. Private raw fictional probe responses and diagnostic metadata remain in the ignored worktree `.local/` directory; no credentials or raw conversations are committed.

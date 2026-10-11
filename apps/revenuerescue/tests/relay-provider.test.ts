@@ -67,6 +67,35 @@ const input = (): Parameters<AgentProvider["interpret"]>[0] => ({
 const signal = () => new AbortController().signal;
 
 describe("Relay Bedrock semantic provider", () => {
+  it("accepts only a complete single JSON fence, not surrounding prose", async () => {
+    for (const language of ["json", ""]) {
+      const answer = response(result);
+      answer.output!.message!.content = [
+        { text: `\`\`\`${language}\n${JSON.stringify(result)}\n\`\`\`` },
+      ];
+      const provider = createAgentProvider({
+        enabled: true,
+        transport: vi.fn<BedrockTransport>().mockResolvedValue(answer),
+      });
+      expect(
+        (await provider.interpret(input(), signal())).interpretation,
+      ).toEqual(result);
+    }
+    for (const text of [
+      `Explanation\n\`\`\`json\n${JSON.stringify(result)}\n\`\`\``,
+      `\`\`\`json\n${JSON.stringify(result)}\n\`\`\`\nextra`,
+    ]) {
+      const answer = response(result);
+      answer.output!.message!.content = [{ text }];
+      const provider = createAgentProvider({
+        enabled: true,
+        transport: vi.fn<BedrockTransport>().mockResolvedValue(answer),
+      });
+      await expect(provider.interpret(input(), signal())).rejects.toMatchObject(
+        { code: "AI_UNAVAILABLE" },
+      );
+    }
+  });
   it("sends the complete conversation in one bounded model call, without contact details", async () => {
     const transport = vi
       .fn<BedrockTransport>()

@@ -171,9 +171,13 @@ export function createAgentProvider(
           result.output?.message?.content
             ?.map((block) => block.text ?? "")
             .join("") ?? "";
+        const trimmed = text.trim();
+        const fenced = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```$/i.exec(
+          trimmed,
+        );
         let payload: unknown;
         try {
-          payload = JSON.parse(text);
+          payload = JSON.parse(fenced ? fenced[1] : trimmed);
         } catch {
           return fail(
             "AWS returned an incomplete interpretation. No call outcome was applied.",
